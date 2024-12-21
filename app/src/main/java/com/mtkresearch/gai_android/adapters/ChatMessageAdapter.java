@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -66,17 +67,20 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         holder.bind(message);
 
         // Set alignment based on message type
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) holder.messageText.getLayoutParams();
-        if (message.isUser()) {
-            params.gravity = Gravity.END;
-            holder.messageText.setBackgroundResource(R.drawable.bg_user_message);
-            holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.user_message_text));
-        } else {
-            params.gravity = Gravity.START;
-            holder.messageText.setBackgroundResource(R.drawable.bg_ai_message);
-            holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.ai_message_text));
+        View messageContainer = holder.itemView.findViewById(R.id.messageContainer);
+        if (messageContainer != null) {
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) messageContainer.getLayoutParams();
+            if (message.isUser()) {
+                params.gravity = Gravity.END;
+                messageContainer.setBackgroundResource(R.drawable.bg_user_message);
+                holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.user_message_text));
+            } else {
+                params.gravity = Gravity.START;
+                messageContainer.setBackgroundResource(R.drawable.bg_ai_message);
+                holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.ai_message_text));
+            }
+            messageContainer.setLayoutParams(params);
         }
-        holder.messageText.setLayoutParams(params);
     }
 
     @Override
@@ -86,14 +90,32 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
     static class MessageViewHolder extends RecyclerView.ViewHolder {
         private final TextView messageText;
+        private final ImageView messageImage;
+        private final View messageContainer;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
+            messageContainer = itemView.findViewById(R.id.messageContainer);
             messageText = itemView.findViewById(R.id.messageText);
+            messageImage = itemView.findViewById(R.id.messageImage);
         }
 
         void bind(ChatMessage message) {
-            messageText.setText(message.getText());
+            // Only set text if it's not empty
+            if (message.getText() != null && !message.getText().isEmpty()) {
+                messageText.setVisibility(View.VISIBLE);
+                messageText.setText(message.getText());
+            } else {
+                messageText.setVisibility(View.GONE);
+            }
+
+            // Handle image
+            if (message.getImageUri() != null) {
+                messageImage.setVisibility(View.VISIBLE);
+                messageImage.setImageURI(message.getImageUri());
+            } else {
+                messageImage.setVisibility(View.GONE);
+            }
         }
     }
 } 

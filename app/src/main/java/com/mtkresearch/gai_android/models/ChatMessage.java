@@ -1,8 +1,11 @@
 package com.mtkresearch.gai_android.models;
 
+import android.net.Uri;
+
 public class ChatMessage {
     private String text;
-    private final boolean isUser;
+    private boolean isUser;
+    private Uri imageUri;
 
     public ChatMessage(String text, boolean isUser) {
         this.text = text;
@@ -19,5 +22,13 @@ public class ChatMessage {
 
     public boolean isUser() {
         return isUser;
+    }
+
+    public Uri getImageUri() {
+        return imageUri;
+    }
+
+    public void setImageUri(Uri imageUri) {
+        this.imageUri = imageUri;
     }
 } 

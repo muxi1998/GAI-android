@@ -89,28 +89,42 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <LinearLayout
+            <EditText
+                android:id="@+id/messageInputExpanded"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:minHeight="48dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="12dp"
-                android:paddingTop="8dp">
+                android:layout_height="wrap_content"
+                android:minHeight="40dp"
+                android:gravity="top|start"
+                android:background="@null"
+                android:hint="Message"
+                android:inputType="textMultiLine"
+                android:padding="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"/>
 
-                <EditText
-                    android:id="@+id/messageInputExpanded"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@null"
-                    android:gravity="center_vertical|start"
-                    android:hint="Message"
-                    android:inputType="textMultiLine"
-                    android:maxLines="4"
-                    android:paddingVertical="4dp"
-                    android:textSize="18sp"/>
-            </LinearLayout>
+            <FrameLayout
+                android:id="@+id/imagePreviewContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:padding="8dp">
+                
+                <ImageView
+                    android:id="@+id/imagePreview"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:scaleType="centerCrop"
+                    android:layout_gravity="start"/>
+                    
+                <ImageButton
+                    android:id="@+id/removeImageButton"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="top|end"
+                    android:background="@drawable/bg_circle"
+                    android:src="@drawable/ic_close"
+                    android:padding="4dp"/>
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
