@@ -22,5 +22,15 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightNavigationBar">true</item>
+        
+        <!-- Popup Menu Style -->
+        <item name="popupMenuStyle">@style/PopupMenuStyle</item>
+    </style>
+
+    <!-- Popup Menu Styles -->
+    <style name="PopupMenuStyle" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+        <item name="android:itemBackground">@android:color/white</item>
+        <item name="android:textColor">@color/text_primary</item>
     </style>
 </resources>

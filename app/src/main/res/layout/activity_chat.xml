@@ -8,51 +8,133 @@
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:padding="8dp"
         android:clipToPadding="false"
-        app:layout_constraintBottom_toTopOf="@+id/messageInput"
+        android:padding="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/inputContainer"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageButton
-        android:id="@+id/imageButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="8dp"
-        android:src="@drawable/ic_image"
-        android:contentDescription="Add image"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <EditText
-        android:id="@+id/messageInput"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:id="@+id/inputContainer"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:hint="Type a message..."
-        android:inputType="textMultiLine"
-        android:maxLines="4"
-        android:padding="12dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/voiceButton"
-        app:layout_constraintStart_toEndOf="@+id/imageButton" />
+        android:background="@drawable/bg_input_container"
+        android:orientation="vertical"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-    <ImageButton
-        android:id="@+id/voiceButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="8dp"
-        android:src="@drawable/ic_mic"
-        android:contentDescription="Voice input"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/sendButton" />
+        <!-- Collapsed Layout (Single Row) -->
+        <LinearLayout
+            android:id="@+id/collapsedInput"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/sendButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:text="Send"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <ImageButton
+                android:id="@+id/attachButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Add attachments"
+                android:padding="12dp"
+                android:src="@drawable/ic_add" />
+
+            <EditText
+                android:id="@+id/messageInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="Message"
+                android:inputType="textMultiLine"
+                android:maxLines="1"
+                android:minHeight="48dp"
+                android:paddingHorizontal="12dp"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/voiceButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Voice input"
+                android:padding="12dp"
+                android:src="@drawable/ic_mic" />
+
+            <ImageButton
+                android:id="@+id/sendButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_send_button"
+                android:contentDescription="Send message"
+                android:padding="8dp"
+                android:src="@drawable/ic_audio_wave" />
+        </LinearLayout>
+
+        <!-- Expanded Layout -->
+        <LinearLayout
+            android:id="@+id/expandedInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Upper Row (Message Input Only) -->
+            <EditText
+                android:id="@+id/messageInputExpanded"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:hint="Message"
+                android:inputType="textMultiLine"
+                android:maxLines="4"
+                android:minHeight="48dp"
+                android:paddingHorizontal="12dp"
+                android:textSize="16sp" />
+
+            <!-- Lower Row (Buttons) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/attachButtonExpanded"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Add attachments"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_add" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1" />
+
+                <ImageButton
+                    android:id="@+id/voiceButtonExpanded"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Voice input"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_mic" />
+
+                <ImageButton
+                    android:id="@+id/sendButtonExpanded"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_send_button"
+                    android:contentDescription="Send message"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_audio_wave" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
