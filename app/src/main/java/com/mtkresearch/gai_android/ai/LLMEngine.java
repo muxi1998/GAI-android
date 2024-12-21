@@ -1,8 +1,35 @@
 package com.mtkresearch.gai_android.ai;
 
+import android.content.Context;
 import java.util.concurrent.CompletableFuture;
 
-public interface LLMEngine {
-    CompletableFuture<String> generateResponse(String prompt);
-    void setContext(String context);
+public class LLMEngine {
+    private final Context context;
+    private final String backend; // "mock", "mtk", or "openai"
+
+    public LLMEngine(Context context, String backend) {
+        this.context = context;
+        this.backend = backend;
+    }
+
+    public CompletableFuture<String> generateResponse(String prompt) {
+        switch (backend) {
+            case "mtk":
+                return generateMTKResponse(prompt);
+            case "openai":
+                return generateOpenAIResponse(prompt);
+            default:
+                return CompletableFuture.completedFuture("I'm currently unavailable.");
+        }
+    }
+
+    private CompletableFuture<String> generateMTKResponse(String prompt) {
+        // MTK implementation
+        return CompletableFuture.completedFuture("MTK response");
+    }
+
+    private CompletableFuture<String> generateOpenAIResponse(String prompt) {
+        // OpenAI implementation
+        return CompletableFuture.completedFuture("OpenAI response");
+    }
 } 
