@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -11,56 +12,62 @@
         android:clipToPadding="false"
         android:padding="8dp"
         app:layout_constraintBottom_toTopOf="@+id/inputContainer"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        tools:layout_editor_absoluteX="8dp" />
 
-    <LinearLayout
+    <FrameLayout
         android:id="@+id/inputContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
         android:background="@drawable/bg_input_container"
-        android:orientation="vertical"
-        android:padding="8dp"
+        android:elevation="2dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Collapsed Layout (Single Row) -->
+        <!-- Collapsed Input -->
         <LinearLayout
             android:id="@+id/collapsedInput"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:paddingHorizontal="8dp">
 
             <ImageButton
                 android:id="@+id/attachButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Add attachments"
-                android:padding="12dp"
-                android:src="@drawable/ic_add" />
+                android:padding="8dp"
+                android:src="@drawable/ic_add"
+                android:layout_gravity="center_vertical"/>
 
             <EditText
                 android:id="@+id/messageInput"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginHorizontal="8dp"
                 android:background="@null"
-                android:hint="Message"
+                android:hint="Type a message"
                 android:inputType="textMultiLine"
-                android:maxLines="1"
-                android:minHeight="48dp"
-                android:paddingHorizontal="12dp"
-                android:textSize="16sp" />
+                android:maxLines="4"
+                android:minHeight="40dp"
+                android:textSize="16sp"
+                android:layout_gravity="center_vertical"/>
 
             <ImageButton
                 android:id="@+id/voiceButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Voice input"
-                android:padding="12dp"
-                android:src="@drawable/ic_mic" />
+                android:padding="8dp"
+                android:src="@drawable/ic_mic"
+                android:layout_gravity="center_vertical"/>
 
             <ImageButton
                 android:id="@+id/sendButton"
@@ -70,10 +77,11 @@
                 android:background="@drawable/bg_send_button"
                 android:contentDescription="Send message"
                 android:padding="8dp"
-                android:src="@drawable/ic_audio_wave" />
+                android:src="@drawable/ic_audio_wave"
+                android:layout_gravity="center_vertical"/>
         </LinearLayout>
 
-        <!-- Expanded Layout -->
+        <!-- Expanded Input -->
         <LinearLayout
             android:id="@+id/expandedInput"
             android:layout_width="match_parent"
@@ -81,48 +89,60 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <!-- Upper Row (Message Input Only) -->
-            <EditText
-                android:id="@+id/messageInputExpanded"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@null"
-                android:hint="Message"
-                android:inputType="textMultiLine"
-                android:maxLines="4"
-                android:minHeight="48dp"
-                android:paddingHorizontal="12dp"
-                android:textSize="16sp" />
-
-            <!-- Lower Row (Buttons) -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:paddingHorizontal="12dp"
+                android:paddingTop="8dp">
+
+                <EditText
+                    android:id="@+id/messageInputExpanded"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@null"
+                    android:gravity="center_vertical|start"
+                    android:hint="Message"
+                    android:inputType="textMultiLine"
+                    android:maxLines="4"
+                    android:paddingVertical="4dp"
+                    android:textSize="18sp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp">
 
                 <ImageButton
                     android:id="@+id/attachButtonExpanded"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Add attachments"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_add" />
+                    android:padding="8dp"
+                    android:src="@drawable/ic_add"
+                    android:layout_gravity="center_vertical"/>
 
-                <View
+                <Space
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="1" />
+                    android:layout_weight="1"/>
 
                 <ImageButton
                     android:id="@+id/voiceButtonExpanded"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Voice input"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_mic" />
+                    android:padding="8dp"
+                    android:src="@drawable/ic_mic"
+                    android:layout_gravity="center_vertical"/>
 
                 <ImageButton
                     android:id="@+id/sendButtonExpanded"
@@ -132,9 +152,19 @@
                     android:background="@drawable/bg_send_button"
                     android:contentDescription="Send message"
                     android:padding="8dp"
-                    android:src="@drawable/ic_audio_wave" />
+                    android:src="@drawable/ic_audio_wave"
+                    android:layout_gravity="center_vertical"/>
             </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+
+        <!-- Recording Input -->
+        <include
+            android:id="@+id/recordingInput"
+            layout="@layout/recording_input_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"/>
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 
