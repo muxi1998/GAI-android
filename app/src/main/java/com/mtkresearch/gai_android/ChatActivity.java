@@ -361,16 +361,9 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void handleImageInput() {
-        // Example: Analyze an image from gallery or camera
-        // You'll need to implement proper image picking logic
-        Uri selectedImageUri = null; // Get this from image picker
-        if (selectedImageUri != null) {
-            vlmEngine.analyzeImage(selectedImageUri)
-                .thenAccept(analysis -> runOnUiThread(() -> {
-                    ChatMessage aiMessage = new ChatMessage(analysis, false);
-                    adapter.addMessage(aiMessage);
-                }));
-        }
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE_REQUEST);
     }
 
     private void handleCameraInput() {
@@ -629,17 +622,9 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     }
 
     private void handleSelectedImage(Uri imageUri) {
-        // Add image message to chat
-        ChatMessage imageMessage = new ChatMessage("", true);
-        imageMessage.setImageUri(imageUri);  // You'll need to add this field to ChatMessage
-        adapter.addMessage(imageMessage);
-        
-        // Then process with VLM
-        vlmEngine.analyzeImage(imageUri)
-            .thenAccept(analysis -> runOnUiThread(() -> {
-                ChatMessage aiMessage = new ChatMessage(analysis, false);
-                adapter.addMessage(aiMessage);
-            }));
+        pendingImageUri = imageUri;
+        showImagePreview(imageUri);
+        expandInputSection();
     }
     
     private void handleSelectedFile(Uri fileUri) {
