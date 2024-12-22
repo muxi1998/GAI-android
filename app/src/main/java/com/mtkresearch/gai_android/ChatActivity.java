@@ -109,7 +109,19 @@ public class ChatActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         adapter = new ChatMessageAdapter();
         binding.recyclerView.setAdapter(adapter);
-        binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setStackFromEnd(true);
+        binding.recyclerView.setLayoutManager(layoutManager);
+        
+        // Add padding to allow scrolling content up
+        binding.recyclerView.setPadding(
+            binding.recyclerView.getPaddingLeft(),
+            binding.recyclerView.getHeight() / 2, // Half screen padding at top
+            binding.recyclerView.getPaddingRight(),
+            binding.recyclerView.getPaddingBottom()
+        );
+        binding.recyclerView.setClipToPadding(false);
     }
 
     private void setupClickListeners() {
@@ -136,14 +148,15 @@ public class ChatActivity extends AppCompatActivity {
                 
             if (!message.isEmpty() || pendingImageUri != null) {
                 if (pendingImageUri != null) {
-                    // Image input (with or without text) - use VLM
                     processImageInput(pendingImageUri, message);
                 } else {
-                    // Text only input - use LLM
                     ChatMessage userMessage = new ChatMessage(message, true);
                     adapter.addMessage(userMessage);
                     processTextInput(message);
                 }
+                
+                // Scroll to the latest message
+                scrollToLatestMessage(true);
                 
                 // Clear input
                 binding.messageInput.setText("");
@@ -681,20 +694,32 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
             .thenAccept(response -> runOnUiThread(() -> {
                 ChatMessage aiMessage = new ChatMessage(response, false);
                 adapter.addMessage(aiMessage);
+                scrollToLatestMessage(true);
             }));
     }
 
     private void processImageInput(Uri imageUri, String message) {
-        // Create user message with both image and text (if provided)
         ChatMessage userMessage = new ChatMessage(message, true);
         userMessage.setImageUri(imageUri);
         adapter.addMessage(userMessage);
-
-        // Process with VLM using the message as prompt if provided
+        scrollToLatestMessage(true);
+        
         vlmEngine.analyzeImage(imageUri, message)
             .thenAccept(analysis -> runOnUiThread(() -> {
                 ChatMessage aiMessage = new ChatMessage(analysis, false);
                 adapter.addMessage(aiMessage);
+                scrollToLatestMessage(true);
             }));
+    }
+
+    private void scrollToLatestMessage(boolean smooth) {
+        if (adapter.getItemCount() > 0) {
+            int targetPosition = adapter.getItemCount() - 1;
+            if (smooth) {
+                binding.recyclerView.smoothScrollToPosition(targetPosition);
+            } else {
+                binding.recyclerView.scrollToPosition(targetPosition);
+            }
+        }
     }
 }

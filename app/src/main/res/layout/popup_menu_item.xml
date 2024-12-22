@@ -6,7 +6,8 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="8dp">
+    android:paddingVertical="8dp"
+    android:background="?attr/selectableItemBackground">
 
     <TextView
         android:id="@+id/menu_item_text"
@@ -14,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:textSize="16sp"
-        android:textColor="@color/text_primary"
+        android:textColor="@android:color/white"
         android:gravity="start|center_vertical" />
 
     <ImageView
@@ -22,5 +23,6 @@
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_marginStart="16dp"
-        android:scaleType="fitCenter" />
+        android:scaleType="fitCenter"
+        android:tint="@android:color/white" />
 </LinearLayout> 
