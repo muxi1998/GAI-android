@@ -88,7 +88,8 @@ public class ChatActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
+        
+        setupButtons();
         audioRecorder = new AudioRecorder(this);
 
         initializeAIEngines();
@@ -96,6 +97,17 @@ public class ChatActivity extends AppCompatActivity {
         setupClickListeners();
         setupInputMode();
         setupAudioWaveButton();
+    }
+
+    private void setupButtons() {
+        binding.homeButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+        });
+
+        // ... rest of your existing button setup code
     }
 
     private void initializeAIEngines() {
