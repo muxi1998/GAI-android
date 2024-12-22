@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             LLMEngineService.LocalBinder binder = (LLMEngineService.LocalBinder) service;
             llmService = binder.getService();
-            initializeLLMService(llmService, binding.llmStatusIndicator);
+            initializeService(llmService, binding.llmStatusIndicator);
         }
 
         @Override
@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             VLMEngineService.LocalBinder binder = (VLMEngineService.LocalBinder) service;
             vlmService = binder.getService();
-            initializeVLMService(vlmService, binding.vlmStatusIndicator);
+            initializeService(vlmService, binding.vlmStatusIndicator);
         }
 
         @Override
@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             ASREngineService.LocalBinder binder = (ASREngineService.LocalBinder) service;
             asrService = binder.getService();
-            initializeASRService(asrService, binding.asrStatusIndicator);
+            initializeService(asrService, binding.asrStatusIndicator);
         }
 
         @Override
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             TTSEngineService.LocalBinder binder = (TTSEngineService.LocalBinder) service;
             ttsService = binder.getService();
-            initializeTTSService(ttsService, binding.ttsStatusIndicator);
+            initializeService(ttsService, binding.ttsStatusIndicator);
         }
 
         @Override
@@ -109,13 +109,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupUI() {
+        setupChatButton();
+        initializeStatusIndicators();
+    }
+
+    private void setupChatButton() {
         binding.startChatButton.setEnabled(false);
         binding.startChatButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChatActivity.class);
             startActivity(intent);
         });
+    }
 
-        // Initialize all status indicators to red
+    private void initializeStatusIndicators() {
         updateEngineStatus(binding.llmStatusIndicator, EngineStatus.ERROR);
         updateEngineStatus(binding.vlmStatusIndicator, EngineStatus.ERROR);
         updateEngineStatus(binding.asrStatusIndicator, EngineStatus.ERROR);
@@ -126,12 +132,18 @@ public class MainActivity extends AppCompatActivity {
         binding.deviceBrand.setText("Brand: " + Build.MANUFACTURER + " " + Build.MODEL);
         binding.deviceFirmware.setText("Firmware: " + Build.VERSION.RELEASE);
         binding.deviceChip.setText("Chipset: " + Build.HARDWARE);
+        binding.deviceRam.setText(getMemoryInfo());
+    }
 
+    private String getMemoryInfo() {
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
         ActivityManager activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         activityManager.getMemoryInfo(memoryInfo);
+        
         long totalMemory = memoryInfo.totalMem / (1024 * 1024); // Convert to MB
-        binding.deviceRam.setText("RAM: " + totalMemory + "MB");
+        long availableMemory = memoryInfo.availMem / (1024 * 1024);
+        
+        return String.format(Locale.getDefault(), "%d MB / %d MB", availableMemory, totalMemory);
     }
 
     private void bindServices() {
@@ -172,23 +184,7 @@ public class MainActivity extends AppCompatActivity {
                 return null;
             });
     }
-
-    private void initializeLLMService(LLMEngineService service, ImageView statusIndicator) {
-        initializeService(service, statusIndicator);
-    }
-
-    private void initializeVLMService(VLMEngineService service, ImageView statusIndicator) {
-        initializeService(service, statusIndicator);
-    }
-
-    private void initializeASRService(ASREngineService service, ImageView statusIndicator) {
-        initializeService(service, statusIndicator);
-    }
-
-    private void initializeTTSService(TTSEngineService service, ImageView statusIndicator) {
-        initializeService(service, statusIndicator);
-    }
-
+    
     private void updateEngineStatus(ImageView indicator, EngineStatus status) {
         runOnUiThread(() -> {
             int colorRes;
