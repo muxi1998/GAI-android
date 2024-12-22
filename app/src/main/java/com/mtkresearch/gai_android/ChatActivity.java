@@ -65,10 +65,6 @@ import android.util.Log;
 public class ChatActivity extends AppCompatActivity {
     private ActivityChatBinding binding;
     private ChatMessageAdapter adapter;
-    private LLMEngine llmEngine;
-    private VLMEngine vlmEngine;
-    private ASREngine asrEngine;
-    private TTSEngine ttsEngine;
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable timerRunnable;
     private Runnable visualizationRunnable;
@@ -89,14 +85,25 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         
+        if (!areEnginesReady()) {
+            Toast.makeText(this, "AI Engines not ready. Please wait for initialization.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
         setupButtons();
         audioRecorder = new AudioRecorder(this);
-
-        initializeAIEngines();
         setupRecyclerView();
         setupClickListeners();
         setupInputMode();
         setupAudioWaveButton();
+    }
+
+    private boolean areEnginesReady() {
+        return MainActivity.llmEngine != null && MainActivity.llmEngine.isReady() &&
+               MainActivity.vlmEngine != null && MainActivity.vlmEngine.isReady() &&
+               MainActivity.asrEngine != null && MainActivity.asrEngine.isReady() &&
+               MainActivity.ttsEngine != null && MainActivity.ttsEngine.isReady();
     }
 
     private void setupButtons() {
@@ -108,15 +115,6 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         // ... rest of your existing button setup code
-    }
-
-    private void initializeAIEngines() {
-        String backend = "mock"; // or get from settings
-        
-        llmEngine = new LLMEngine(this, backend);
-        asrEngine = new ASREngine(this, backend);
-        vlmEngine = new VLMEngine(this, backend);
-        ttsEngine = new TTSEngine(this, backend);
     }
 
     private void setupRecyclerView() {
@@ -159,11 +157,11 @@ public class ChatActivity extends AppCompatActivity {
         
         binding.recordingInput.cancelRecordingButton.setOnClickListener(v -> {
             stopRecording(false);
-            asrEngine.stopListening();
+            MainActivity.asrEngine.stopListening();
         });
         
         binding.recordingInput.finishRecordingButton.setOnClickListener(v -> {
-            asrEngine.stopListening();
+            MainActivity.asrEngine.stopListening();
             stopRecording(true);
         });
 
@@ -335,7 +333,7 @@ public class ChatActivity extends AppCompatActivity {
         stopRecordingTimer();
         
         if (shouldSave && recordingFile != null && recordingFile.exists()) {
-            asrEngine.processRecordedFile(recordingFile, recognizedText -> {
+            MainActivity.asrEngine.processRecordedFile(recordingFile, recognizedText -> {
                 if (recognizedText != null) {
                     runOnUiThread(() -> {
                         binding.messageInput.setText(recognizedText);
@@ -420,7 +418,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void speakResponse(String text) {
-        ttsEngine.convertTextToSpeech(text)
+        MainActivity.ttsEngine.convertTextToSpeech(text)
             .thenAccept(audioFile -> {
                 // Play the audio file
                 // Implement audio playback logic here
@@ -477,8 +475,8 @@ public class ChatActivity extends AppCompatActivity {
         audioRecorder.stopRecording();
         binding = null;
         stopRecordingTimer();
-        if (asrEngine != null) {
-            asrEngine.stopListening();
+        if (MainActivity.asrEngine != null) {
+            MainActivity.asrEngine.stopListening();
         }
         if (currentMediaPlayer != null) {
             currentMediaPlayer.release();
@@ -666,7 +664,7 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     }
 
     private void processTextInput(String message) {
-        llmEngine.generateResponse(message)
+        MainActivity.llmEngine.generateResponse(message)
             .thenAccept(response -> runOnUiThread(() -> {
                 ChatMessage aiMessage = new ChatMessage(response, false);
                 adapter.addMessage(aiMessage);
@@ -679,8 +677,8 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         userMessage.setImageUri(imageUri);
         adapter.addMessage(userMessage);
         scrollToLatestMessage(true);
-        
-        vlmEngine.analyzeImage(imageUri, message)
+
+        MainActivity.vlmEngine.analyzeImage(imageUri, message)
             .thenAccept(analysis -> runOnUiThread(() -> {
                 ChatMessage aiMessage = new ChatMessage(analysis, false);
                 adapter.addMessage(aiMessage);

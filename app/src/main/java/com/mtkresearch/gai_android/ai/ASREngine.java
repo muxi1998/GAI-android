@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 public class ASREngine {
     private final Context context;
     private final String backend;
+    private boolean isInitialized = false;
 
     public ASREngine(Context context, String backend) {
         this.context = context;
@@ -63,5 +64,17 @@ public class ASREngine {
 
     private void startOpenAIListening(Consumer<String> callback) {
         // OpenAI implementation
+    }
+
+    public CompletableFuture<Boolean> initialize() {
+        return CompletableFuture.supplyAsync(() -> {
+            // Initialization logic here
+            isInitialized = true;
+            return true;
+        });
+    }
+
+    public boolean isReady() {
+        return isInitialized;
     }
 } 

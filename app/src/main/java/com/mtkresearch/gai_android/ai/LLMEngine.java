@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 public class LLMEngine {
     private final Context context;
     private final String backend; // "mock", "mtk", or "openai"
+    private boolean isInitialized = false;
 
     public LLMEngine(Context context, String backend) {
         this.context = context;
@@ -31,5 +32,17 @@ public class LLMEngine {
     private CompletableFuture<String> generateOpenAIResponse(String prompt) {
         // OpenAI implementation
         return CompletableFuture.completedFuture("OpenAI response");
+    }
+
+    public CompletableFuture<Boolean> initialize() {
+        return CompletableFuture.supplyAsync(() -> {
+            // Initialization logic here
+            isInitialized = true;
+            return true;
+        });
+    }
+
+    public boolean isReady() {
+        return isInitialized;
     }
 } 

@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 public class VLMEngine {
     private Context context;
     private String backend;
+    private boolean isInitialized = false;
 
     public VLMEngine(Context context, String backend) {
         this.context = context;
@@ -60,5 +61,17 @@ public class VLMEngine {
     private CompletableFuture<Uri> openaiGenerateImage(String prompt) {
         // OpenAI implementation
         return CompletableFuture.completedFuture(null);
+    }
+
+    public CompletableFuture<Boolean> initialize() {
+        return CompletableFuture.supplyAsync(() -> {
+            // Initialization logic here
+            isInitialized = true;
+            return true;
+        });
+    }
+
+    public boolean isReady() {
+        return isInitialized;
     }
 } 
