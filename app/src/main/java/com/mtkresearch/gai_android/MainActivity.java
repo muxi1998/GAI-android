@@ -2,126 +2,191 @@ package com.mtkresearch.gai_android;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.mtkresearch.gai_android.ChatActivity;
 import com.mtkresearch.gai_android.R;
-import com.mtkresearch.gai_android.ai.ASREngine;
-import com.mtkresearch.gai_android.ai.LLMEngine;
-import com.mtkresearch.gai_android.ai.TTSEngine;
-import com.mtkresearch.gai_android.ai.VLMEngine;
 import com.mtkresearch.gai_android.databinding.ActivityMainBinding;
+import com.mtkresearch.gai_android.service.ASREngineService;
+import com.mtkresearch.gai_android.service.BaseEngineService;
+import com.mtkresearch.gai_android.service.LLMEngineService;
+import com.mtkresearch.gai_android.service.TTSEngineService;
+import com.mtkresearch.gai_android.service.VLMEngineService;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
     
-    // Static engines that can be accessed by other activities
-    public static LLMEngine llmEngine;
-    public static VLMEngine vlmEngine;
-    public static ASREngine asrEngine;
-    public static TTSEngine ttsEngine;
+    // Services
+    private LLMEngineService llmService;
+    private VLMEngineService vlmService;
+    private ASREngineService asrService;
+    private TTSEngineService ttsService;
     
-    // Backend type can be "mtk", "openai", "mock", etc.
-    private final String backend = "mock"; // TODO: Get from settings
-    
+    private final ServiceConnection llmConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            LLMEngineService.LocalBinder binder = (LLMEngineService.LocalBinder) service;
+            llmService = binder.getService();
+            initializeLLMService(llmService, binding.llmStatusIndicator);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            llmService = null;
+            updateEngineStatus(binding.llmStatusIndicator, EngineStatus.ERROR);
+        }
+    };
+
+    private final ServiceConnection vlmConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            VLMEngineService.LocalBinder binder = (VLMEngineService.LocalBinder) service;
+            vlmService = binder.getService();
+            initializeVLMService(vlmService, binding.vlmStatusIndicator);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            vlmService = null;
+            updateEngineStatus(binding.vlmStatusIndicator, EngineStatus.ERROR);
+        }
+    };
+
+    private final ServiceConnection asrConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            ASREngineService.LocalBinder binder = (ASREngineService.LocalBinder) service;
+            asrService = binder.getService();
+            initializeASRService(asrService, binding.asrStatusIndicator);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            asrService = null;
+            updateEngineStatus(binding.asrStatusIndicator, EngineStatus.ERROR);
+        }
+    };
+
+    private final ServiceConnection ttsConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TTSEngineService.LocalBinder binder = (TTSEngineService.LocalBinder) service;
+            ttsService = binder.getService();
+            initializeTTSService(ttsService, binding.ttsStatusIndicator);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            ttsService = null;
+            updateEngineStatus(binding.ttsStatusIndicator, EngineStatus.ERROR);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        setupUI();
         displayDeviceInfo();
-        initializeEngines();
-        setupClickListeners();
+        bindServices();
     }
 
-    private void initializeEngines() {
-        // Start initialization in background
-        CompletableFuture.runAsync(() -> {
-            initializeLLMEngine();
-            initializeVLMEngine();
-            initializeASREngine();
-            initializeTTSEngine();
+    private void setupUI() {
+        binding.startChatButton.setEnabled(false);
+        binding.startChatButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ChatActivity.class);
+            startActivity(intent);
         });
-    }
 
-    private void initializeLLMEngine() {
-        updateEngineStatus(binding.llmStatusIndicator, EngineStatus.INITIALIZING);
-        try {
-            llmEngine = new LLMEngine(this, backend);
-            llmEngine.initialize()
-                .thenAccept(success -> {
-                    updateEngineStatus(binding.llmStatusIndicator, 
-                        success ? EngineStatus.READY : EngineStatus.ERROR);
-                    checkAllEnginesReady();
-                });
-        } catch (Exception e) {
-            updateEngineStatus(binding.llmStatusIndicator, EngineStatus.ERROR);
-        }
-    }
-
-    private void initializeVLMEngine() {
-        updateEngineStatus(binding.vlmStatusIndicator, EngineStatus.INITIALIZING);
-        try {
-            vlmEngine = new VLMEngine(this, backend);
-            vlmEngine.initialize()
-                .thenAccept(success -> {
-                    updateEngineStatus(binding.vlmStatusIndicator, 
-                        success ? EngineStatus.READY : EngineStatus.ERROR);
-                    checkAllEnginesReady();
-                });
-        } catch (Exception e) {
-            updateEngineStatus(binding.vlmStatusIndicator, EngineStatus.ERROR);
-        }
-    }
-
-    private void initializeASREngine() {
-        updateEngineStatus(binding.asrStatusIndicator, EngineStatus.INITIALIZING);
-        try {
-            asrEngine = new ASREngine(this, backend);
-            asrEngine.initialize()
-                .thenAccept(success -> {
-                    updateEngineStatus(binding.asrStatusIndicator, 
-                        success ? EngineStatus.READY : EngineStatus.ERROR);
-                    checkAllEnginesReady();
-                });
-        } catch (Exception e) {
-            updateEngineStatus(binding.asrStatusIndicator, EngineStatus.ERROR);
-        }
-    }
-
-    private void initializeTTSEngine() {
-        updateEngineStatus(binding.ttsStatusIndicator, EngineStatus.INITIALIZING);
-        try {
-            ttsEngine = new TTSEngine(this, backend);
-            ttsEngine.initialize()
-                .thenAccept(success -> {
-                    updateEngineStatus(binding.ttsStatusIndicator, 
-                        success ? EngineStatus.READY : EngineStatus.ERROR);
-                    checkAllEnginesReady();
-                });
-        } catch (Exception e) {
-            updateEngineStatus(binding.ttsStatusIndicator, EngineStatus.ERROR);
-        }
+        // Initialize all status indicators to red
+        updateEngineStatus(binding.llmStatusIndicator, EngineStatus.ERROR);
+        updateEngineStatus(binding.vlmStatusIndicator, EngineStatus.ERROR);
+        updateEngineStatus(binding.asrStatusIndicator, EngineStatus.ERROR);
+        updateEngineStatus(binding.ttsStatusIndicator, EngineStatus.ERROR);
     }
 
     private void displayDeviceInfo() {
         binding.deviceBrand.setText("Brand: " + Build.MANUFACTURER + " " + Build.MODEL);
         binding.deviceFirmware.setText("Firmware: " + Build.VERSION.RELEASE);
         binding.deviceChip.setText("Chipset: " + Build.HARDWARE);
-        
+
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
         ActivityManager activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         activityManager.getMemoryInfo(memoryInfo);
         long totalMemory = memoryInfo.totalMem / (1024 * 1024); // Convert to MB
         binding.deviceRam.setText("RAM: " + totalMemory + "MB");
+    }
+
+    private void bindServices() {
+        // Start and bind all services
+        startAndBindService(LLMEngineService.class, llmConnection);
+        startAndBindService(VLMEngineService.class, vlmConnection);
+        startAndBindService(ASREngineService.class, asrConnection);
+        startAndBindService(TTSEngineService.class, ttsConnection);
+    }
+
+    private void startAndBindService(Class<? extends BaseEngineService> serviceClass, ServiceConnection connection) {
+        Intent intent = new Intent(this, serviceClass);
+        startService(intent); // Ensure service stays alive
+        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void initializeService(BaseEngineService service, ImageView statusIndicator) {
+        if (service == null) {
+            updateEngineStatus(statusIndicator, EngineStatus.ERROR);
+            return;
+        }
+
+        updateEngineStatus(statusIndicator, EngineStatus.INITIALIZING);
+        service.initialize()
+            .thenAccept(success -> {
+                runOnUiThread(() -> {
+                    EngineStatus status = success ? EngineStatus.READY : EngineStatus.ERROR;
+                    updateEngineStatus(statusIndicator, status);
+                    checkAllServicesReady();
+                });
+            })
+            .exceptionally(throwable -> {
+                Log.e(TAG, "Service initialization failed", throwable);
+                runOnUiThread(() -> {
+                    updateEngineStatus(statusIndicator, EngineStatus.ERROR);
+                    checkAllServicesReady();
+                });
+                return null;
+            });
+    }
+
+    private void initializeLLMService(LLMEngineService service, ImageView statusIndicator) {
+        initializeService(service, statusIndicator);
+    }
+
+    private void initializeVLMService(VLMEngineService service, ImageView statusIndicator) {
+        initializeService(service, statusIndicator);
+    }
+
+    private void initializeASRService(ASREngineService service, ImageView statusIndicator) {
+        initializeService(service, statusIndicator);
+    }
+
+    private void initializeTTSService(TTSEngineService service, ImageView statusIndicator) {
+        initializeService(service, statusIndicator);
     }
 
     private void updateEngineStatus(ImageView indicator, EngineStatus status) {
@@ -145,13 +210,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void checkAllEnginesReady() {
-        boolean allReady = llmEngine != null && llmEngine.isReady() &&
-                          vlmEngine != null && vlmEngine.isReady() &&
-                          asrEngine != null && asrEngine.isReady() &&
-                          ttsEngine != null && ttsEngine.isReady();
-                          
-        runOnUiThread(() -> binding.startChatButton.setEnabled(allReady));
+    private void checkAllServicesReady() {
+        boolean allReady = llmService != null && llmService.isReady() &&
+                          vlmService != null && vlmService.isReady() &&
+                          asrService != null && asrService.isReady() &&
+                          ttsService != null && ttsService.isReady();
+        
+        runOnUiThread(() -> {
+            binding.startChatButton.setEnabled(allReady);
+            
+            if (allReady) {
+                // When all services are ready, use primary colors
+                binding.startChatButton.setBackgroundTintList(ColorStateList.valueOf(
+                    getResources().getColor(R.color.primary, getTheme())));
+                binding.startChatButton.setTextColor(
+                    getResources().getColor(R.color.text_secondary, getTheme()));
+            } else {
+                // When services are not ready, use surface and secondary text colors
+                binding.startChatButton.setBackgroundTintList(ColorStateList.valueOf(
+                    getResources().getColor(R.color.surface, getTheme())));
+                binding.startChatButton.setTextColor(
+                    getResources().getColor(R.color.text_secondary, getTheme()));
+            }
+        });
     }
 
     private enum EngineStatus {
@@ -160,11 +241,12 @@ public class MainActivity extends AppCompatActivity {
         ERROR
     }
 
-    private void setupClickListeners() {
-        Button startChatButton = findViewById(R.id.startChatButton);
-        startChatButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ChatActivity.class);
-            startActivity(intent);
-        });
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(llmConnection);
+        unbindService(vlmConnection);
+        unbindService(asrConnection);
+        unbindService(ttsConnection);
     }
 } 

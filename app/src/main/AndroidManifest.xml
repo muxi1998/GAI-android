@@ -47,6 +47,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <service android:name=".service.LLMEngineService" />
+        <service android:name=".service.VLMEngineService" />
+        <service android:name=".service.ASREngineService" />
+        <service android:name=".service.TTSEngineService" />
     </application>
 
 </manifest>
