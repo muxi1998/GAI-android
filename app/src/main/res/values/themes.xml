@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base application theme -->
-    <style name="Theme.GAIAndroid" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="Theme.GAIAndroid" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand colors -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
@@ -34,5 +34,16 @@
         <item name="android:itemBackground">@android:color/transparent</item>
         <item name="android:divider">@android:color/transparent</item>
         <item name="android:dividerHeight">0dp</item>
+    </style>
+
+    <!-- Full screen dialog theme -->
+    <style name="FullScreenDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

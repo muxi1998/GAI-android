@@ -38,7 +38,7 @@
         android:id="@+id/finishRecordingButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:background="@drawable/bg_circle_button"
+        android:background="@drawable/bg_send_button"
         android:src="@drawable/ic_check"
         android:padding="8dp"
         android:layout_gravity="center_vertical"/>

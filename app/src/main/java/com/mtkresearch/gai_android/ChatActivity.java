@@ -95,6 +95,7 @@ public class ChatActivity extends AppCompatActivity {
         setupRecyclerView();
         setupClickListeners();
         setupInputMode();
+        setupAudioWaveButton();
     }
 
     private void initializeAIEngines() {
@@ -140,43 +141,6 @@ public class ChatActivity extends AppCompatActivity {
         binding.voiceButton.setOnClickListener(voiceClickListener);
         binding.voiceButtonExpanded.setOnClickListener(voiceClickListener);
         
-        // Send button listeners
-        View.OnClickListener sendClickListener = v -> {
-            String message = binding.expandedInput.getVisibility() == View.VISIBLE ?
-                binding.messageInputExpanded.getText().toString() :
-                binding.messageInput.getText().toString();
-                
-            if (!message.isEmpty() || pendingImageUri != null) {
-                if (pendingImageUri != null) {
-                    processImageInput(pendingImageUri, message);
-                } else {
-                    ChatMessage userMessage = new ChatMessage(message, true);
-                    adapter.addMessage(userMessage);
-                    processTextInput(message);
-                }
-                
-                // Scroll to the latest message
-                scrollToLatestMessage(true);
-                
-                // Clear input
-                binding.messageInput.setText("");
-                binding.messageInputExpanded.setText("");
-                if (pendingImageUri != null) {
-                    binding.expandedInput.findViewById(R.id.imagePreviewContainer)
-                        .setVisibility(View.GONE);
-                    pendingImageUri = null;
-                }
-                collapseInputSection();
-                updateSendButton(false);
-            }
-        };
-        
-        binding.sendButton.setOnClickListener(sendClickListener);
-        binding.sendButtonExpanded.setOnClickListener(sendClickListener);
-
-        // Initialize send button states
-        updateSendButton(false);
-
         // Recording controls
         binding.voiceButton.setOnClickListener(v -> startRecording());
         binding.voiceButtonExpanded.setOnClickListener(v -> startRecording());
@@ -721,5 +685,43 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
                 binding.recyclerView.scrollToPosition(targetPosition);
             }
         }
+    }
+
+    private void setupAudioWaveButton() {
+        View.OnClickListener audioWaveClickListener = v -> {
+            String message = binding.expandedInput.getVisibility() == View.VISIBLE ?
+                binding.messageInputExpanded.getText().toString() :
+                binding.messageInput.getText().toString();
+                
+            if (!message.isEmpty() || pendingImageUri != null) {
+                if (pendingImageUri != null) {
+                    processImageInput(pendingImageUri, message);
+                } else {
+                    ChatMessage userMessage = new ChatMessage(message, true);
+                    adapter.addMessage(userMessage);
+                    processTextInput(message);
+                }
+                
+                // Scroll to the latest message
+                scrollToLatestMessage(true);
+                
+                // Clear input
+                binding.messageInput.setText("");
+                binding.messageInputExpanded.setText("");
+                if (pendingImageUri != null) {
+                    binding.expandedInput.findViewById(R.id.imagePreviewContainer)
+                        .setVisibility(View.GONE);
+                    pendingImageUri = null;
+                }
+                collapseInputSection();
+                updateSendButton(false);
+            } else {
+                Intent intent = new Intent(this, AudioChatActivity.class);
+                startActivity(intent);
+            }
+        };
+        
+        binding.sendButton.setOnClickListener(audioWaveClickListener);
+        binding.sendButtonExpanded.setOnClickListener(audioWaveClickListener);
     }
 }
