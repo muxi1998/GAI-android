@@ -67,7 +67,7 @@ import android.util.Log;
 
 public class ChatActivity extends AppCompatActivity implements ChatMessageAdapter.OnSpeakerClickListener {
     private static final String TAG = "ChatActivity";
-    
+
     private ActivityChatBinding binding;
     private ChatMessageAdapter adapter;
     private Handler handler = new Handler(Looper.getMainLooper());
@@ -172,16 +172,16 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     }
 
     private void checkServicesReady() {
-        if (llmService != null && vlmService != null && 
+        if (llmService != null && vlmService != null &&
             asrService != null && ttsService != null) {
-            
-            if (!llmService.isReady() || !vlmService.isReady() || 
+
+            if (!llmService.isReady() || !vlmService.isReady() ||
                 !asrService.isReady() || !ttsService.isReady()) {
                 Toast.makeText(this, "AI Services not ready", Toast.LENGTH_SHORT).show();
                 finish();
                 return;
             }
-            
+
             // Enable UI when all services are ready
             enableUI();
         }
@@ -213,11 +213,11 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         adapter = new ChatMessageAdapter();
         adapter.setSpeakerClickListener((ChatMessageAdapter.OnSpeakerClickListener) this);  // Explicit cast
         binding.recyclerView.setAdapter(adapter);
-        
+
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         binding.recyclerView.setLayoutManager(layoutManager);
-        
+
         // Add padding to allow scrolling content up
         binding.recyclerView.setPadding(
             binding.recyclerView.getPaddingLeft(),
@@ -238,21 +238,21 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         View.OnClickListener attachClickListener = v -> showAttachmentOptions();
         binding.attachButton.setOnClickListener(attachClickListener);
         binding.attachButtonExpanded.setOnClickListener(attachClickListener);
-        
+
         // Voice button listeners
         View.OnClickListener voiceClickListener = v -> startRecording();
         binding.voiceButton.setOnClickListener(voiceClickListener);
         binding.voiceButtonExpanded.setOnClickListener(voiceClickListener);
-        
+
         // Recording controls
         binding.voiceButton.setOnClickListener(v -> startRecording());
         binding.voiceButtonExpanded.setOnClickListener(v -> startRecording());
-        
+
         binding.recordingInput.cancelRecordingButton.setOnClickListener(v -> {
             stopRecording(false);
             asrService.stopListening();
         });
-        
+
         binding.recordingInput.finishRecordingButton.setOnClickListener(v -> {
             asrService.stopListening();
             stopRecording(true);
@@ -329,7 +329,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         String message = binding.expandedInput.getVisibility() == View.VISIBLE ?
             binding.messageInputExpanded.getText().toString() :
             binding.messageInput.getText().toString();
-        
+
         boolean shouldShowSend = !message.isEmpty() || pendingImageUri != null;
         updateSendButton(shouldShowSend);
     }
@@ -339,9 +339,9 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         binding.expandedInput.setVisibility(View.VISIBLE);
         binding.messageInputExpanded.requestFocus();
         binding.messageInputExpanded.setText(binding.messageInput.getText());
-        
+
         // Scroll RecyclerView to bottom when keyboard appears
-        binding.recyclerView.postDelayed(() -> 
+        binding.recyclerView.postDelayed(() ->
             binding.recyclerView.smoothScrollToPosition(adapter.getItemCount()), 100);
     }
 
@@ -357,10 +357,10 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     }
 
     private void showAttachmentOptions() {
-        PopupMenu popup = new PopupMenu(new ContextThemeWrapper(this, R.style.PopupMenuStyle), 
-            binding.expandedInput.getVisibility() == View.VISIBLE ? 
+        PopupMenu popup = new PopupMenu(new ContextThemeWrapper(this, R.style.PopupMenuStyle),
+            binding.expandedInput.getVisibility() == View.VISIBLE ?
             binding.attachButtonExpanded : binding.attachButton);
-        
+
         popup.getMenu().add(0, 1, 0, "Attach Photos").setIcon(R.drawable.ic_gallery);
         popup.getMenu().add(0, 2, 0, "Take Photo").setIcon(R.drawable.ic_camera);
         popup.getMenu().add(0, 3, 0, "Attach Files").setIcon(R.drawable.ic_folder);
@@ -404,13 +404,13 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
                 outputDir.mkdirs();
             }
             recordingFile = new File(outputDir, "recording_" + System.currentTimeMillis() + ".m4a");
-            
+
             audioRecorder.startRecording(recordingFile);
-            
+
             binding.collapsedInput.setVisibility(View.GONE);
             binding.expandedInput.setVisibility(View.GONE);
             binding.recordingInput.getRoot().setVisibility(View.VISIBLE);
-            
+
             startRecordingTimer();
             startAudioVisualization();
 
@@ -433,7 +433,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         binding.recordingInput.getRoot().setVisibility(View.GONE);
         binding.collapsedInput.setVisibility(View.VISIBLE);
         stopRecordingTimer();
-        
+
         if (shouldSave && recordingFile != null && recordingFile.exists()) {
             asrService.convertSpeechToText(recordingFile)
                 .thenAccept(transcribedText -> {
@@ -477,14 +477,6 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
                     ChatMessage aiMessage = new ChatMessage(response, false);
                     adapter.addMessage(aiMessage);
                     scrollToLatestMessage(true);
-
-                    // Optional: Convert response to speech
-                    ttsService.convertTextToSpeech(response)
-                        .thenAccept(audioFile -> {
-                            if (audioFile != null) {
-                                playAudioFile(audioFile);
-                            }
-                        });
                 });
             })
             .exceptionally(throwable -> {
@@ -534,7 +526,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         }
 
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        
+
         // Create the File where the photo should go
         File photoFile = null;
         try {
@@ -615,8 +607,8 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
                 if (binding.recordingInput.getRoot().getVisibility() == View.VISIBLE) {
                     int maxAmplitude = audioRecorder.getMaxAmplitude();
                     // Convert to 0-1 range with log scale
-                    float amplitude = maxAmplitude > 0 
-                        ? (float) (1.0 / Math.log(32768) * Math.log(maxAmplitude)) 
+                    float amplitude = maxAmplitude > 0
+                        ? (float) (1.0 / Math.log(32768) * Math.log(maxAmplitude))
                         : 0f;
                     binding.recordingInput.audioWaveView.updateAmplitude(amplitude);
                     handler.postDelayed(this, 100);
@@ -638,7 +630,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        
+
         // Unbind all services
         if (llmService != null) {
             unbindService(llmConnection);
@@ -652,7 +644,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         if (ttsService != null) {
             unbindService(ttsConnection);
         }
-        
+
         // Cleanup resources
         if (currentMediaPlayer != null) {
             currentMediaPlayer.release();
@@ -688,7 +680,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.d("ChatActivity", "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
-        
+
         if (resultCode == RESULT_OK) {
             switch (requestCode) {
                 case PICK_IMAGE_REQUEST:
@@ -716,15 +708,10 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     @Override
     public void onSpeakerClick(String messageText) {
         if (ttsService != null && ttsService.isReady()) {
-            ttsService.convertTextToSpeech(messageText)
-                .thenAccept(audioFile -> {
-                    if (audioFile != null) {
-                        playAudioFile(audioFile);
-                    }
-                })
+            ttsService.speak(messageText)
                 .exceptionally(throwable -> {
                     Log.e(TAG, "Error converting text to speech", throwable);
-                    runOnUiThread(() -> 
+                    runOnUiThread(() ->
                         Toast.makeText(this, "Error playing audio", Toast.LENGTH_SHORT).show());
                     return null;
                 });
@@ -789,7 +776,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
             currentMediaPlayer.setDataSource(file.getAbsolutePath());
             currentMediaPlayer.prepare();
             currentMediaPlayer.start();
-            
+
             currentMediaPlayer.setOnCompletionListener(mp -> {
                 mp.release();
                 currentMediaPlayer = null;
@@ -817,7 +804,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         showImagePreview(imageUri);
         expandInputSection();
     }
-    
+
     private void handleSelectedFile(Uri fileUri) {
         try {
             String fileName = getFileName(fileUri);
@@ -829,7 +816,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
             Toast.makeText(this, "Failed to process file", Toast.LENGTH_SHORT).show();
         }
     }
-    
+
     private String getFileName(Uri uri) {
         String result = null;
         if (uri.getScheme().equals("content")) {
@@ -855,10 +842,10 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         View imagePreviewContainer = expandedInputView.findViewById(R.id.imagePreviewContainer);
         ImageView imagePreview = expandedInputView.findViewById(R.id.imagePreview);
         ImageButton removeButton = expandedInputView.findViewById(R.id.removeImageButton);
-        
+
         imagePreviewContainer.setVisibility(View.VISIBLE);
         imagePreview.setImageURI(imageUri);
-        
+
         removeButton.setOnClickListener(v -> {
             imagePreviewContainer.setVisibility(View.GONE);
             pendingImageUri = null;
