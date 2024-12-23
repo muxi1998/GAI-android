@@ -65,7 +65,7 @@ import java.util.List;
 import java.util.ArrayList;
 import android.util.Log;
 
-public class ChatActivity extends AppCompatActivity {
+public class ChatActivity extends AppCompatActivity implements ChatMessageAdapter.OnSpeakerClickListener {
     private static final String TAG = "ChatActivity";
     
     private ActivityChatBinding binding;
@@ -211,6 +211,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         adapter = new ChatMessageAdapter();
+        adapter.setSpeakerClickListener((ChatMessageAdapter.OnSpeakerClickListener) this);  // Explicit cast
         binding.recyclerView.setAdapter(adapter);
         
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -651,6 +652,7 @@ public class ChatActivity extends AppCompatActivity {
         audioRecorder.stopRecording();
         stopRecordingTimer();
         binding = null;
+        super.onDestroy();
     }
 
     @Override
@@ -675,33 +677,53 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     @Override
-protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    super.onActivityResult(requestCode, resultCode, data);
-    Log.d("ChatActivity", "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
-    
-    if (resultCode == RESULT_OK) {
-        switch (requestCode) {
-            case PICK_IMAGE_REQUEST:
-                if (data != null && data.getData() != null) {
-                    handleSelectedImage(data.getData());
-                }
-                break;
-            case CAPTURE_IMAGE_REQUEST:
-                if (currentPhotoPath != null) {
-                    File photoFile = new File(currentPhotoPath);
-                    pendingImageUri = Uri.fromFile(photoFile);
-                    showImagePreview(pendingImageUri);
-                    expandInputSection(); // Make sure expanded input is visible
-                }
-                break;
-            case PICK_FILE_REQUEST:
-                if (data != null && data.getData() != null) {
-                    handleSelectedFile(data.getData());
-                }
-                break;
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.d("ChatActivity", "onActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
+        
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case PICK_IMAGE_REQUEST:
+                    if (data != null && data.getData() != null) {
+                        handleSelectedImage(data.getData());
+                    }
+                    break;
+                case CAPTURE_IMAGE_REQUEST:
+                    if (currentPhotoPath != null) {
+                        File photoFile = new File(currentPhotoPath);
+                        pendingImageUri = Uri.fromFile(photoFile);
+                        showImagePreview(pendingImageUri);
+                        expandInputSection(); // Make sure expanded input is visible
+                    }
+                    break;
+                case PICK_FILE_REQUEST:
+                    if (data != null && data.getData() != null) {
+                        handleSelectedFile(data.getData());
+                    }
+                    break;
+            }
         }
     }
-}
+
+    @Override
+    public void onSpeakerClick(String messageText) {
+        if (ttsService != null && ttsService.isReady()) {
+            ttsService.convertTextToSpeech(messageText)
+                .thenAccept(audioFile -> {
+                    if (audioFile != null) {
+                        playAudioFile(audioFile);
+                    }
+                })
+                .exceptionally(throwable -> {
+                    Log.e(TAG, "Error converting text to speech", throwable);
+                    runOnUiThread(() -> 
+                        Toast.makeText(this, "Error playing audio", Toast.LENGTH_SHORT).show());
+                    return null;
+                });
+        } else {
+            Toast.makeText(this, "TTS service not ready", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     private void showAudioList() {
         File recordingsDir = new File(getFilesDir(), "recordings");
@@ -773,6 +795,11 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
             Toast.makeText(this, "Failed to play audio", Toast.LENGTH_SHORT).show();
             if (audioListAdapter != null) {
                 audioListAdapter.onPlaybackCompleted();
+            }
+
+            if (currentMediaPlayer != null) {
+                currentMediaPlayer.release();
+                currentMediaPlayer = null;
             }
         }
     }
