@@ -52,6 +52,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         fullText = text;
         currentCharIndex = 0;
         streamingPosition = position;
+        notifyItemChanged(position);
         streamNextCharacter();
     }
 
@@ -62,9 +63,11 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             notifyItemChanged(streamingPosition);
             
             currentCharIndex++;
-            handler.postDelayed(this::streamNextCharacter, 50); // Adjust speed here
+            handler.postDelayed(this::streamNextCharacter, 50);
         } else {
+            int completedPosition = streamingPosition;
             streamingPosition = -1;
+            notifyItemChanged(completedPosition);
         }
     }
 
@@ -87,17 +90,20 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         if (message.isUser()) {
             params.startToStart = ConstraintLayout.LayoutParams.UNSET;
             params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
-            params.horizontalBias = 1f;  // Align to end
+            params.horizontalBias = 1f;
             holder.messageBubble.setBackgroundResource(R.drawable.bg_user_message);
             holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.user_message_text));
             holder.speakerButton.setVisibility(View.GONE);
         } else {
             params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
             params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
-            params.horizontalBias = 0f;  // Align to start
+            params.horizontalBias = 0f;
             holder.messageBubble.setBackgroundResource(R.drawable.bg_ai_message);
             holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.ai_message_text));
-            holder.speakerButton.setVisibility(View.VISIBLE);
+            
+            boolean isStreaming = (position == streamingPosition);
+            Log.d(TAG, "Position: " + position + ", Streaming: " + isStreaming);
+            holder.speakerButton.setVisibility(isStreaming ? View.GONE : View.VISIBLE);
         }
         holder.messageBubble.setLayoutParams(params);
 
@@ -107,8 +113,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             Log.d(TAG, "Image URI present: " + imageUri.toString());
             holder.messageImage.setVisibility(View.VISIBLE);
             try {
-                // Load image using URI
-                holder.messageImage.setImageURI(null);  // Clear the previous image
+                holder.messageImage.setImageURI(null);
                 holder.messageImage.setImageURI(imageUri);
                 Log.d(TAG, "Image loaded successfully");
             } catch (Exception e) {
