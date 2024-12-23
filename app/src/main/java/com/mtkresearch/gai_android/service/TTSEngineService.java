@@ -25,6 +25,7 @@ public class TTSEngineService extends BaseEngineService {
     private boolean isTextToSpeechInitialized = false;
     private static final int TTS_DATA_CHECK_CODE = 1000;
     private static final long INIT_TIMEOUT_MS = 20000; // 20 seconds timeout
+    private String backend = null;
 
     public class LocalBinder extends BaseEngineService.LocalBinder<TTSEngineService> { }
 
@@ -37,6 +38,54 @@ public class TTSEngineService extends BaseEngineService {
     public CompletableFuture<Boolean> initialize() {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         
+        // Try MTK TTS first
+        initializeMTKTTS()
+            .thenAccept(success -> {
+                if (success) {
+                    backend = "mtk";
+                    future.complete(true);
+                } else {
+                    // If MTK fails, try OpenAI TTS
+                    initializeOpenAITTS()
+                        .thenAccept(openAISuccess -> {
+                            if (openAISuccess) {
+                                backend = "openai";
+                                future.complete(true);
+                            } else {
+                                // If both fail, try default Android TTS
+                                initializeDefaultTTS()
+                                    .thenAccept(defaultSuccess -> {
+                                        if (defaultSuccess) {
+                                            backend = "default";
+                                            future.complete(true);
+                                        } else {
+                                            future.complete(false);
+                                        }
+                                    });
+                            }
+                        });
+                }
+            });
+        
+        return future;
+    }
+
+    private CompletableFuture<Boolean> initializeMTKTTS() {
+        Log.d(TAG, "Attempting to initialize MTK TTS");
+        // TODO: Implement MTK TTS initialization
+        return CompletableFuture.completedFuture(false); // For now, return false to try next option
+    }
+
+    private CompletableFuture<Boolean> initializeOpenAITTS() {
+        Log.d(TAG, "Attempting to initialize OpenAI TTS");
+        // TODO: Implement OpenAI TTS initialization
+        return CompletableFuture.completedFuture(false); // For now, return false to try next option
+    }
+
+    private CompletableFuture<Boolean> initializeDefaultTTS() {
+        Log.d(TAG, "Attempting to initialize default Android TTS");
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
         // First check if TTS engine is installed
         if (!isTTSEngineInstalled()) {
             Log.e(TAG, "No TTS engine installed");
@@ -53,9 +102,9 @@ public class TTSEngineService extends BaseEngineService {
             }
 
             // Initialize TTS after data is prepared
-            initializeTTS(future);
+            initializeTTSEngine(future);
         });
-        
+
         return future;
     }
 
@@ -115,7 +164,7 @@ public class TTSEngineService extends BaseEngineService {
         return future;
     }
 
-    private void initializeTTS(CompletableFuture<Boolean> future) {
+    private void initializeTTSEngine(CompletableFuture<Boolean> future) {
         textToSpeech = new TextToSpeech(getApplicationContext(), status -> {
             if (status == TextToSpeech.SUCCESS) {
                 int result = textToSpeech.setLanguage(Locale.US);
@@ -155,27 +204,52 @@ public class TTSEngineService extends BaseEngineService {
     }
 
     public CompletableFuture<Boolean> speak(String text) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        
         if (!isReady()) {
-            Log.e(TAG, "TTS not initialized");
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("TTS not initialized"));
             return future;
         }
 
+        switch (backend) {
+            case "mtk":
+                return mtkSpeak(text);
+            case "openai":
+                return openaiSpeak(text);
+            case "default":
+                return defaultSpeak(text);
+            default:
+                CompletableFuture<Boolean> future = new CompletableFuture<>();
+                future.completeExceptionally(new IllegalStateException("No TTS backend available"));
+                return future;
+        }
+    }
+
+    private CompletableFuture<Boolean> mtkSpeak(String text) {
+        // TODO: Implement MTK speak
+        return CompletableFuture.completedFuture(false);
+    }
+
+    private CompletableFuture<Boolean> openaiSpeak(String text) {
+        // TODO: Implement OpenAI speak
+        return CompletableFuture.completedFuture(false);
+    }
+
+    private CompletableFuture<Boolean> defaultSpeak(String text) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        
         try {
             String utteranceId = "TTS_" + System.currentTimeMillis();
             int result = textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
             
             if (result == TextToSpeech.SUCCESS) {
-                Log.d(TAG, "Started speaking text");
+                Log.d(TAG, "Started speaking text using default TTS");
                 future.complete(true);
             } else {
-                Log.e(TAG, "Failed to speak text");
+                Log.e(TAG, "Failed to speak text using default TTS");
                 future.complete(false);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error speaking text", e);
+            Log.e(TAG, "Error speaking text using default TTS", e);
             future.completeExceptionally(e);
         }
         
