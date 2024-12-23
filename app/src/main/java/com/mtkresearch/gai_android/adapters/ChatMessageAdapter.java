@@ -19,7 +19,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.mtkresearch.gai_android.R;
 import com.mtkresearch.gai_android.models.ChatMessage;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.MessageViewHolder> {
     private static final String TAG = "ChatMessageAdapter";
@@ -29,6 +31,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
     private String fullText = "";
     private int currentCharIndex = 0;
     private OnSpeakerClickListener speakerClickListener;
+    private Set<Integer> completedPositions = new HashSet<>();
 
     public interface OnSpeakerClickListener {
         void onSpeakerClick(String messageText);
@@ -44,11 +47,19 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         notifyItemInserted(position);
         
         if (!message.isUser()) {
-            streamText(message.getText(), position);
+            if (message.getText() != null && !message.getText().isEmpty()) {
+                Log.d(TAG, "Starting text streaming for position: " + position);
+                streamText(message.getText(), position);
+            } else {
+                Log.d(TAG, "No text to stream for position: " + position);
+                completedPositions.add(position);
+                notifyItemChanged(position);
+            }
         }
     }
 
     private void streamText(String text, int position) {
+        Log.d(TAG, "Stream text started for position: " + position + ", text: " + text);
         fullText = text;
         currentCharIndex = 0;
         streamingPosition = position;
@@ -66,7 +77,11 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             handler.postDelayed(this::streamNextCharacter, 50);
         } else {
             int completedPosition = streamingPosition;
+            Log.d(TAG, "Streaming completed for position: " + completedPosition);
+            completedPositions.add(completedPosition);
             streamingPosition = -1;
+            fullText = "";
+            currentCharIndex = 0;
             notifyItemChanged(completedPosition);
         }
     }
@@ -102,26 +117,34 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.ai_message_text));
             
             boolean isStreaming = (position == streamingPosition);
-            Log.d(TAG, "Position: " + position + ", Streaming: " + isStreaming);
-            holder.speakerButton.setVisibility(isStreaming ? View.GONE : View.VISIBLE);
+            boolean isCompleted = completedPositions.contains(position);
+            boolean hasText = message.getText() != null && !message.getText().isEmpty();
+            boolean hasImage = message.getImageUri() != null;
+            
+            Log.d(TAG, String.format("Message at position %d: Streaming=%b, Completed=%b, HasText=%b, HasImage=%b", 
+                position, isStreaming, isCompleted, hasText, hasImage));
+            
+            boolean shouldShowSpeaker = !message.isUser() && (!isStreaming && (isCompleted || hasImage));
+            Log.d(TAG, "Speaker visibility decision for position " + position + ": " + shouldShowSpeaker);
+            
+            holder.speakerButton.setVisibility(shouldShowSpeaker ? View.VISIBLE : View.GONE);
         }
         holder.messageBubble.setLayoutParams(params);
 
         // Handle image visibility and loading
         Uri imageUri = message.getImageUri();
         if (imageUri != null) {
-            Log.d(TAG, "Image URI present: " + imageUri.toString());
+            Log.d(TAG, "Loading image for position " + position + ": " + imageUri);
             holder.messageImage.setVisibility(View.VISIBLE);
             try {
                 holder.messageImage.setImageURI(null);
                 holder.messageImage.setImageURI(imageUri);
-                Log.d(TAG, "Image loaded successfully");
+                Log.d(TAG, "Image loaded successfully for position " + position);
             } catch (Exception e) {
-                Log.e(TAG, "Error loading image", e);
+                Log.e(TAG, "Error loading image for position " + position, e);
                 holder.messageImage.setVisibility(View.GONE);
             }
         } else {
-            Log.d(TAG, "No image URI for this message");
             holder.messageImage.setVisibility(View.GONE);
         }
 

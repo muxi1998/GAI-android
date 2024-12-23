@@ -638,11 +638,20 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        
         // Unbind all services
-        unbindService(llmConnection);
-        unbindService(vlmConnection);
-        unbindService(asrConnection);
-        unbindService(ttsConnection);
+        if (llmService != null) {
+            unbindService(llmConnection);
+        }
+        if (vlmService != null) {
+            unbindService(vlmConnection);
+        }
+        if (asrService != null) {
+            unbindService(asrConnection);
+        }
+        if (ttsService != null) {
+            unbindService(ttsConnection);
+        }
         
         // Cleanup resources
         if (currentMediaPlayer != null) {
@@ -652,7 +661,6 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         audioRecorder.stopRecording();
         stopRecordingTimer();
         binding = null;
-        super.onDestroy();
     }
 
     @Override
