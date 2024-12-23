@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.ColorStateList;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -14,6 +15,9 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import android.widget.Toast;
 
 import com.mtkresearch.gai_android.ChatActivity;
 import com.mtkresearch.gai_android.R;
@@ -29,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final int PERMISSION_REQUEST_CODE = 1;
     private ActivityMainBinding binding;
     
     // Services
@@ -105,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupUI();
         displayDeviceInfo();
-        bindServices();
+        checkAndRequestPermissions();
     }
 
     private void setupUI() {
@@ -244,5 +249,33 @@ public class MainActivity extends AppCompatActivity {
         unbindService(vlmConnection);
         unbindService(asrConnection);
         unbindService(ttsConnection);
+    }
+
+    private void checkAndRequestPermissions() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Requesting RECORD_AUDIO permission");
+            ActivityCompat.requestPermissions(this,
+                new String[]{android.Manifest.permission.RECORD_AUDIO},
+                PERMISSION_REQUEST_CODE);
+        } else {
+            Log.d(TAG, "RECORD_AUDIO permission already granted");
+            bindServices();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "RECORD_AUDIO permission granted");
+                bindServices();
+            } else {
+                Log.e(TAG, "RECORD_AUDIO permission denied");
+                Toast.makeText(this, "Speech recognition requires audio permission", Toast.LENGTH_LONG).show();
+                updateEngineStatus(binding.asrStatusIndicator, EngineStatus.ERROR);
+            }
+        }
     }
 } 

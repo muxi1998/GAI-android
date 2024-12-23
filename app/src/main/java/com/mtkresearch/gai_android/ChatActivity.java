@@ -75,6 +75,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     private Runnable visualizationRunnable;
     private AudioRecorder audioRecorder;
     private File recordingFile;
+    private boolean isRecording = false;
     private static final int PERMISSION_REQUEST_CODE = 123;
     private static final int PICK_IMAGE_REQUEST = 1;
     private static final int CAPTURE_IMAGE_REQUEST = 2;
@@ -239,8 +240,14 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         binding.attachButton.setOnClickListener(attachClickListener);
         binding.attachButtonExpanded.setOnClickListener(attachClickListener);
 
-        // Voice button listeners
-        View.OnClickListener voiceClickListener = v -> startRecording();
+        // Voice button listeners - update to toggle recording
+        View.OnClickListener voiceClickListener = v -> {
+            if (isRecording) {
+                stopRecording(true);
+            } else {
+                startRecording();
+            }
+        };
         binding.voiceButton.setOnClickListener(voiceClickListener);
         binding.voiceButtonExpanded.setOnClickListener(voiceClickListener);
 
@@ -393,68 +400,52 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
     }
 
     private void startRecording() {
-        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_CODE);
+        if (asrService == null) {
+            Toast.makeText(this, "ASR service not ready", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        try {
-            File outputDir = new File(getFilesDir(), "recordings");
-            if (!outputDir.exists()) {
-                outputDir.mkdirs();
-            }
-            recordingFile = new File(outputDir, "recording_" + System.currentTimeMillis() + ".m4a");
-
-            audioRecorder.startRecording(recordingFile);
-
-            binding.collapsedInput.setVisibility(View.GONE);
-            binding.expandedInput.setVisibility(View.GONE);
-            binding.recordingInput.getRoot().setVisibility(View.VISIBLE);
-
-            startRecordingTimer();
-            startAudioVisualization();
-
-            // Start ASR service listening
-            asrService.startListening(text -> {
-                runOnUiThread(() -> {
-                    if (binding.recordingInput.recordingTimer != null) {
-                        binding.recordingInput.recordingTimer.setText(text);
-                    }
-                });
-            });
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to start recording", e);
-            Toast.makeText(this, "Failed to start recording", Toast.LENGTH_SHORT).show();
+        if (isRecording) {
+            // If already recording, stop it
+            stopRecording(true);
+            return;
         }
+
+        // Start ASR streaming
+        asrService.startListening(result -> {
+            runOnUiThread(() -> {
+                if (result.startsWith("Partial: ")) {
+                    // Update the recording input with partial results
+                    String partialText = result.substring(9); // Remove "Partial: " prefix
+                    binding.messageInput.setText(partialText);
+                } else if (!result.startsWith("Error: ") && !result.equals("Ready for speech...")) {
+                    // Final result - update the message input and stop recording
+                    binding.messageInput.setText(result);
+                    binding.messageInputExpanded.setText(result);
+                    updateSendButton(!result.isEmpty());
+                    stopRecording(false);  // Stop recording when we get final result
+                } else if (result.startsWith("Error: ")) {
+                    Toast.makeText(ChatActivity.this, result, Toast.LENGTH_SHORT).show();
+                    stopRecording(false);  // Stop recording on error
+                }
+            });
+        });
+
+        // Update UI to show recording state
+        binding.voiceButton.setImageResource(R.drawable.ic_pause);
+        binding.voiceButtonExpanded.setImageResource(R.drawable.ic_pause);
+        isRecording = true;
     }
 
     private void stopRecording(boolean shouldSave) {
-        audioRecorder.stopRecording();
-        binding.recordingInput.getRoot().setVisibility(View.GONE);
-        binding.collapsedInput.setVisibility(View.VISIBLE);
-        stopRecordingTimer();
-
-        if (shouldSave && recordingFile != null && recordingFile.exists()) {
-            asrService.convertSpeechToText(recordingFile)
-                .thenAccept(transcribedText -> {
-                    if (transcribedText != null && !transcribedText.isEmpty()) {
-                        runOnUiThread(() -> {
-                            binding.messageInput.setText(transcribedText);
-                            binding.messageInputExpanded.setText(transcribedText);
-                            updateSendButton(true);
-                        });
-                    }
-                })
-                .exceptionally(throwable -> {
-                    Log.e(TAG, "Error converting speech to text", throwable);
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "Error processing speech", Toast.LENGTH_SHORT).show();
-                    });
-                    return null;
-                });
-        } else if (recordingFile != null && recordingFile.exists()) {
-            recordingFile.delete();
+        if (asrService != null) {
+            asrService.stopListening();
         }
+
+        // Update UI to show normal state
+        binding.voiceButton.setImageResource(R.drawable.ic_mic);
+        binding.voiceButtonExpanded.setImageResource(R.drawable.ic_mic);
+        isRecording = false;
     }
 
     // Modified methods to use services
