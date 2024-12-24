@@ -15,7 +15,6 @@ include_directories(${CMAKE_SOURCE_DIR}/../jni/prebuilt/src)
 # Add your source files
 add_library(llm_jni SHARED
         llm_jni.cpp
-        LlmNative.cpp  # Add the new C++ file here
 )
 
 # Find and link Android log library

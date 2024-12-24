@@ -361,9 +361,10 @@ llm_streaming_inference(void* llmRuntime, const std::string& inputString, const 
 extern "C" {
 
 JNIEXPORT jboolean JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeInitLlm(JNIEnv *env, jobject /* this */,
-                                                    jstring yamlConfigPath,
-                                                    jboolean preloadSharedWeights) {
+Java_com_mtkresearch_gai_1android_service_LLMEngineService_nativeInitLlm(JNIEnv *env,
+                                                                         jobject /* this */,
+                                                                         jstring yamlConfigPath,
+                                                                         jboolean preloadSharedWeights) {
     const char *configPath = nullptr;
     struct sigaction sa, old_sa;
     bool success = false;
@@ -434,10 +435,12 @@ Java_com_example_llmapp_jni_LlmNative_nativeInitLlm(JNIEnv *env, jobject /* this
     return success ? JNI_TRUE : JNI_FALSE;
 }
 
-JNIEXPORT jobject JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeInference(JNIEnv *env, jobject /* this */,
-                                                      jstring inputString, jint maxResponse,
-                                                      jboolean parsePromptTokens) {
+JNIEXPORT jstring JNICALL
+Java_com_mtkresearch_gai_1android_service_LLMEngineService_nativeInference(JNIEnv *env,
+                                                                           jobject /* this */,
+                                                                           jstring inputString,
+                                                                           jint maxResponse,
+                                                                           jboolean parsePromptTokens) {
     jstring preformatterName = env->NewStringUTF("Llama3NoInput");
 
     if (!llmRuntime || !tokenizer) {
@@ -473,54 +476,20 @@ Java_com_example_llmapp_jni_LlmNative_nativeInference(JNIEnv *env, jobject /* th
     std::tie(fullResponse, promptTokPerSec, genTokPerSec) =
             llm_inference(llmRuntime, prompt, tokenizer, maxResponse, parsePromptTokens);
 
-    // Create the result object
-    jclass resultClass = env->FindClass("com/example/llmapp/data/model/InferenceResult");
-    if (resultClass == nullptr) {
-        LOGE("Failed to find InferenceResult class");
-        return nullptr;
-    }
-
-    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(Ljava/lang/String;DD[I)V");
-    if (constructor == nullptr) {
-        LOGE("Failed to find InferenceResult constructor");
-        return nullptr;
-    }
-
-    // Create the jintArray for generatedTokens
-    jintArray jGeneratedTokens = env->NewIntArray(generatedTokens.size());
-    if (jGeneratedTokens != nullptr) {
-        env->SetIntArrayRegion(jGeneratedTokens, 0, generatedTokens.size(),
-                               reinterpret_cast<const jint*>(generatedTokens.data()));
-    } else {
-        LOGE("Failed to create jintArray for generatedTokens");
-        return nullptr;
-    }
-
-    // Create the InferenceResult object
-    jobject result = env->NewObject(resultClass, constructor,
-                                    env->NewStringUTF(fullResponse.c_str()),
-                                    (jdouble)promptTokPerSec,
-                                    (jdouble)genTokPerSec,
-                                    jGeneratedTokens);
-
-    if (result == nullptr) {
-        LOGE("Failed to create InferenceResult object");
-        env->DeleteLocalRef(jGeneratedTokens);
-        return nullptr;
-    }
-
     // Clean up local references
-    env->DeleteLocalRef(jGeneratedTokens);
     env->DeleteLocalRef(preformatterName);
 
-    return result;
+    // Return the fullResponse as a jstring
+    return env->NewStringUTF(fullResponse.c_str());
 }
 
-JNIEXPORT jobject JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeStreamingInference(JNIEnv *env, jobject /* this */,
-                                                               jstring inputString, jint maxResponse,
-                                                               jboolean parsePromptTokens,
-                                                               jobject callback) {
+JNIEXPORT jstring JNICALL
+Java_com_mtkresearch_gai_1android_service_LLMEngineService_nativeStreamingInference(JNIEnv *env,
+                                                                                    jobject /* this */,
+                                                                                    jstring inputString,
+                                                                                    jint maxResponse,
+                                                                                    jboolean parsePromptTokens,
+                                                                                    jobject callback) {
     jstring preformatterName = env->NewStringUTF("Llama3NoInput");
 
     if (!llmRuntime || !tokenizer) {
@@ -558,114 +527,26 @@ Java_com_example_llmapp_jni_LlmNative_nativeStreamingInference(JNIEnv *env, jobj
     std::string fullResponse;
     std::vector<int> generatedTokens;
 
-    auto tokenCallback = [&](const std::string& token) {
+    auto tokenCallback = [&](const std::string &token) {
         jstring jToken = env->NewStringUTF(token.c_str());
         env->CallVoidMethod(callback, onTokenMethod, jToken);
         env->DeleteLocalRef(jToken);
     };
 
     std::tie(fullResponse, promptTokPerSec, genTokPerSec) =
-            llm_streaming_inference(llmRuntime, prompt, tokenizer, maxResponse, parsePromptTokens, tokenCallback);
-
-    // Create and return the InferenceResult object (same as before)
-    jclass resultClass = env->FindClass("com/example/llmapp/data/model/InferenceResult");
-    if (resultClass == nullptr) {
-        LOGE("Failed to find InferenceResult class");
-        return nullptr;
-    }
-
-    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(Ljava/lang/String;DD[I)V");
-    if (constructor == nullptr) {
-        LOGE("Failed to find InferenceResult constructor");
-        return nullptr;
-    }
-
-    // Create the jintArray for generatedTokens
-    jintArray jGeneratedTokens = env->NewIntArray(generatedTokens.size());
-    if (jGeneratedTokens != nullptr) {
-        env->SetIntArrayRegion(jGeneratedTokens, 0, generatedTokens.size(),
-                               reinterpret_cast<const jint*>(generatedTokens.data()));
-    } else {
-        LOGE("Failed to create jintArray for generatedTokens");
-        return nullptr;
-    }
-
-    jobject result = env->NewObject(resultClass, constructor,
-                                    env->NewStringUTF(fullResponse.c_str()),
-                                    (jdouble)promptTokPerSec,
-                                    (jdouble)genTokPerSec,
-                                    jGeneratedTokens);
-
-    if (result == nullptr) {
-        LOGE("Failed to create InferenceResult object");
-        env->DeleteLocalRef(jGeneratedTokens);
-        return nullptr;
-    }
+            llm_streaming_inference(llmRuntime, prompt, tokenizer, maxResponse, parsePromptTokens,
+                                    tokenCallback);
 
     // Clean up local references
-    env->DeleteLocalRef(jGeneratedTokens);
     env->DeleteLocalRef(preformatterName);
 
-    return result;
-}
-
-JNIEXPORT jobject JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeGenResponse(JNIEnv *env, jobject /* this */,
-                                                        jstring inputString, jint maxResponse,
-                                                        jint firstInputToken) {
-    if (!llmRuntime || !tokenizer) {
-        LOGE("LLM not initialized");
-        return nullptr;
-    }
-
-    const char *input = env->GetStringUTFChars(inputString, 0);
-    std::string inputStr(input);
-    env->ReleaseStringUTFChars(inputString, input);
-
-    std::string fullResponse;
-    double genTokPerSec;
-
-    std::vector<mtk::Tokenizer::TokenType> generatedTokens = llm_gen_response(
-            llmRuntime, tokenizer, maxResponse,
-            static_cast<mtk::Tokenizer::TokenType>(firstInputToken),
-            fullResponse, genTokPerSec);
-
-    jintArray jGeneratedTokens = env->NewIntArray(generatedTokens.size());
-    if (jGeneratedTokens == nullptr) {
-        LOGE("Failed to create Java array for generated tokens");
-        return nullptr;
-    }
-    env->SetIntArrayRegion(jGeneratedTokens, 0, generatedTokens.size(),
-                           reinterpret_cast<jint *>(generatedTokens.data()));
-
-    jclass resultClass = env->FindClass("com/example/llmapp/data/model/InferenceResult");
-    if (resultClass == nullptr) {
-        LOGE("Failed to find InferenceResult class");
-        return nullptr;
-    }
-
-    jmethodID constructor = env->GetMethodID(resultClass, "<init>", "(Ljava/lang/String;DD[I)V");
-    if (constructor == nullptr) {
-        LOGE("Failed to find InferenceResult constructor");
-        return nullptr;
-    }
-
-    jobject result = env->NewObject(resultClass, constructor,
-                                    env->NewStringUTF(fullResponse.c_str()),
-                                    0.0,
-                                    genTokPerSec,
-                                    jGeneratedTokens);
-
-    if (result == nullptr) {
-        LOGE("Failed to create InferenceResult object");
-        return nullptr;
-    }
-
-    return result;
+    // Return the fullResponse as a jstring
+    return env->NewStringUTF(fullResponse.c_str());
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeReleaseLlm(JNIEnv *env, jobject /* this */) {
+Java_com_mtkresearch_gai_1android_service_LLMEngineService_nativeReleaseLlm(JNIEnv *env,
+                                                                            jobject /* this */) {
     if (llmRuntime) {
         llm_release(llmRuntime);
         llmRuntime = nullptr;
@@ -675,7 +556,8 @@ Java_com_example_llmapp_jni_LlmNative_nativeReleaseLlm(JNIEnv *env, jobject /* t
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeResetLlm(JNIEnv *env, jobject /* this */) {
+Java_com_mtkresearch_gai_1android_service_LLMEngineService_nativeResetLlm(JNIEnv *env,
+                                                                          jobject /* this */) {
     if (!llmRuntime) {
         LOGE("LLM not initialized");
         return JNI_FALSE;
@@ -687,7 +569,7 @@ Java_com_example_llmapp_jni_LlmNative_nativeResetLlm(JNIEnv *env, jobject /* thi
 }
 
 JNIEXPORT jboolean JNICALL
-Java_com_example_llmapp_jni_LlmNative_nativeSwapModel(JNIEnv *env, jobject /* this */, jint tokenSize) {
+Java_com_mtkresearch_gai_1android_service_LLMEngineService_nativeSwapModel(JNIEnv *env, jobject /* this */, jint tokenSize) {
     if (!llmRuntime) {
         LOGE("LLM not initialized");
         return JNI_FALSE;
