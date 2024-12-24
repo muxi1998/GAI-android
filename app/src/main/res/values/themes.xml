@@ -12,8 +12,11 @@
         <item name="colorSurface">@color/surface</item>
         
         <!-- Text colors -->
+        <item name="android:textColor">@color/text_primary</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_secondary</item>
+    
         
         <!-- Status bar color -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
@@ -23,8 +26,8 @@
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightNavigationBar">true</item>
         
-        <!-- Popup Menu Style -->
-        <!-- <item name="popupMenuStyle">@style/PopupMenuStyle</item> -->
+        <!-- Force light theme -->
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 
     <!-- Popup Menu Styles -->
