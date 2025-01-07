@@ -52,14 +52,14 @@ android {
             java {
                 srcDirs("src/main/java")
             }
-            jniLibs.srcDirs("src/main/jniLibs")
+            jniLibs.srcDirs("src/main/jniLibs", "src/main/cpp/libs")
         }
     }
-//    externalNativeBuild {
-//        cmake {
-//            path = File("src/main/cpp/CMakeLists.txt")
-//        }
-//    }
+    externalNativeBuild {
+        cmake {
+            path = File("src/main/cpp/CMakeLists.txt")
+        }
+    }
 //    sourceSets.getByName("main") {
 //        jniLibs.setSrcDirs(listOf("src/main/libs"))
 //    }
