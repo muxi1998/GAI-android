@@ -8,68 +8,63 @@ project(LlmApp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Specify the path to your prebuilt libraries
-set(PREBUILT_LIB_DIR ${CMAKE_SOURCE_DIR}/../libs/arm64-v8a)
+# Define ExecuTorch root directory
+set(EXECUTORCH_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/third_party/executorch)
 
-# Add libllava_runner as an imported library
-add_library(llava_runner SHARED IMPORTED)
-set_target_properties(llava_runner PROPERTIES
-    IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../libs/${ANDROID_ABI}/libllava_runner.so
-)
-
-# Find and link Android log library
-find_library(log-lib log)
-
-# ====== LLM ======
-#add_library(llm_jni SHARED
-#    llm_jni.cpp
-#)
-#
-## Set the output directory for the built library
-#set_target_properties(llm_jni PROPERTIES
-#    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../libs/arm64-v8a
-#)
-#
-## Add this section to ensure symbols are properly exported
-#set_target_properties(llm_jni PROPERTIES
-#    LINK_FLAGS "-Wl,--no-as-needed"
-#)
-#
-## Add this to force the linker to include all symbols
-#target_link_options(llm_jni PRIVATE -Wl,--whole-archive ${PREBUILT_LIB_DIR}/libmtk_llm.so -Wl,--no-whole-archive)
-#
-#target_link_libraries(llm_jni
-#    android
-#    log
-#)
+# Set paths for prebuilt libraries
+set(PREBUILT_LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../libs)
 
 # Find required Android libraries
 find_library(log-lib log)
 find_library(jnigraphics-lib jnigraphics)
 
-# ====== VLM (LLaVA) ======
-add_library(vlm_jni SHARED
-    include/llava/llava_runner_simplified.cpp
+# Define source files
+set(VLM_SOURCES
     vlm_jni.cpp
+    vlm_test.cpp
+    include/llava/llava_runner.cpp
 )
+
+# Define header files
+set(VLM_HEADERS
+    include/llava/llava_runner.h
+    include/llava/llava_image_prefiller.h
+    include/llava/llava_text_decoder_runner.h
+)
+
+# Import prebuilt llava_runner library
+add_library(llava_runner SHARED IMPORTED)
+set_target_properties(llava_runner PROPERTIES
+    IMPORTED_LOCATION ${PREBUILT_LIBS_DIR}/libllava_runner.so
+)
+
+# VLM JNI library
+add_library(vlm_jni SHARED ${VLM_SOURCES} ${VLM_HEADERS})
 
 set_target_properties(vlm_jni PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/../libs/${ANDROID_ABI}"
 )
 
-target_include_directories(vlm_jni PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/llava
+# Include directories
+target_include_directories(vlm_jni PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${EXECUTORCH_ROOT}
+    ${EXECUTORCH_ROOT}/..
+    ${EXECUTORCH_ROOT}/extension/llm
+    ${EXECUTORCH_ROOT}/extension/llm/runner
 )
 
+target_compile_options(vlm_jni PRIVATE
+    -Wno-deprecated-declarations
+)
+
+# Link against required libraries
 target_link_libraries(vlm_jni
     android
     ${log-lib}
     ${jnigraphics-lib}
-)
-
-# Ensure llava_runner is copied to the output directory
-add_custom_command(TARGET vlm_jni POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy 
-        ${CMAKE_CURRENT_SOURCE_DIR}/../libs/${ANDROID_ABI}/libllava_runner.so
-        ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/
+    llava_runner
+    -latomic
+    -lm
 )

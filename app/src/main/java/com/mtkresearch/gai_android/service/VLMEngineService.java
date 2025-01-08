@@ -9,13 +9,19 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 
 public class VLMEngineService extends BaseEngineService {
     static {
-        System.loadLibrary("llava_runner");
-        System.loadLibrary("vlm_jni");
+        try {
+            System.loadLibrary("executorch");
+            System.loadLibrary("llava_runner");
+            System.loadLibrary("vlm_jni");
+        } catch (UnsatisfiedLinkError e) {
+            Log.e("VLMEngineService", "Failed to load native libraries", e);
+        }
     }
 
     private static final String TAG = "VLMEngineService";
@@ -29,6 +35,8 @@ public class VLMEngineService extends BaseEngineService {
 
     @Override
     public CompletableFuture<Boolean> initialize() {
+        testVlm() ;
+
         return CompletableFuture.supplyAsync(() -> {
             try {
                 switch (backend) {
@@ -55,6 +63,16 @@ public class VLMEngineService extends BaseEngineService {
         try {
             String modelPath = "/data/local/tmp/llama/llava.pte";
             String tokenizerPath = "/data/local/tmp/llama/tokenizer.bin";
+
+            // Add file existence check
+            if (!new File(modelPath).exists()) {
+                Log.e(TAG, "Model file not found: " + modelPath);
+                return false;
+            }
+            if (!new File(tokenizerPath).exists()) {
+                Log.e(TAG, "Tokenizer file not found: " + tokenizerPath);
+                return false;
+            }
 
             boolean success = nativeInitVlm(modelPath, tokenizerPath);
             if (success) {
@@ -144,4 +162,28 @@ public class VLMEngineService extends BaseEngineService {
     private native boolean nativeInitVlm(String modelPath, String tokenizerPath);
     private native String nativeAnalyzeImage(Bitmap bitmap, String prompt);
     private native void nativeReleaseVlm();
+
+    public boolean testVlm() {
+        try {
+            // Match the exact paths from CLI example
+            String modelPath = "/data/local/tmp/llama/llava.pte";
+            String tokenizerPath = "/data/local/tmp/llama/tokenizer.bin";
+            String imagePath = "/data/local/tmp/llama/image.pt";
+
+            // Make sure the files exist
+            for (String path : new String[]{modelPath, tokenizerPath, imagePath}) {
+                if (!new File(path).exists()) {
+                    Log.e(TAG, "File not found: " + path);
+                    return false;
+                }
+            }
+
+            return nativeTestVlm(modelPath, tokenizerPath, imagePath);
+        } catch (Exception e) {
+            Log.e(TAG, "VLM test failed", e);
+            return false;
+        }
+    }
+
+    private native boolean nativeTestVlm(String modelPath, String tokenizerPath, String imagePath);
 }

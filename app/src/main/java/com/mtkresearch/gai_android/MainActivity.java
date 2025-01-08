@@ -155,13 +155,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void bindServices() {
         // Bind services sequentially to avoid memory pressure
-        startAndBindService(LLMEngineService.class, llmConnection, () -> {
-            startAndBindService(VLMEngineService.class, vlmConnection, () -> {
-                startAndBindService(ASREngineService.class, asrConnection, () -> {
-                    startAndBindService(TTSEngineService.class, ttsConnection, null);
-                });
-            });
-        });
+        // startAndBindService(LLMEngineService.class, llmConnection, () -> {
+        //     startAndBindService(VLMEngineService.class, vlmConnection, () -> {
+        //         startAndBindService(ASREngineService.class, asrConnection, () -> {
+        //             startAndBindService(TTSEngineService.class, ttsConnection, null);
+        //         });
+        //     });
+        // });
+
+        // Only bind VLM service for now
+        startAndBindService(VLMEngineService.class, vlmConnection, null);
     }
 
     private void startAndBindService(
