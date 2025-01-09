@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "executorch/extension/llm/runner/image_prefiller.h"
-#include "executorch/extension/tensor/tensor.h"
+#include <executorch/extension/llm/runner/image_prefiller.h>
+#include <executorch/extension/tensor/tensor.h>
 
 namespace example {
 

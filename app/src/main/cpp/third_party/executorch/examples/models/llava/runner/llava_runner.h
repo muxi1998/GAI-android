@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "executorch/extension/llm/runner/multimodal_runner.h"
+#include <executorch/extension/llm/runner/multimodal_runner.h>
 
 namespace example {
 

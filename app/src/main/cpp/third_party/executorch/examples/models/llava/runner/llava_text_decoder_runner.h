@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "executorch/extension/llm/runner/text_decoder_runner.h"
+#include <executorch/extension/llm/runner/text_decoder_runner.h>
 
 namespace example {
 

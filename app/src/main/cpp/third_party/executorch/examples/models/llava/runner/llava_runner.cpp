@@ -10,10 +10,10 @@
 // The runner takes in a prompt string as well as a list of images as input and
 // emits a string as output.
 
-#include "llava/llava_image_prefiller.h"
-#include "llava/llava_runner.h"
-#include "llava/llava_text_decoder_runner.h"
-#include "executorch/extension/llm/tokenizer/bpe_tokenizer.h"
+#include <executorch/examples/models/llava/runner/llava_image_prefiller.h>
+#include <executorch/examples/models/llava/runner/llava_runner.h>
+#include <executorch/examples/models/llava/runner/llava_text_decoder_runner.h>
+#include <executorch/extension/llm/tokenizer/bpe_tokenizer.h>
 
 #include <ctime>
 #include <memory>

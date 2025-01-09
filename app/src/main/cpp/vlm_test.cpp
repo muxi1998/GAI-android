@@ -1,6 +1,6 @@
 #include <jni.h>
 #include <android/log.h>
-#include "include/llava/llava_runner.h"
+#include "third_party/executorch/examples/models/llava/runner/llava_runner.h"
 #include <memory>
 #include <vector>
 
