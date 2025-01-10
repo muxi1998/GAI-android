@@ -39,7 +39,7 @@ class ET_EXPERIMENTAL LlavaImagePrefiller
 
     // inputs:[start_pos, embeds]
     auto start_pos_tensor = executorch::extension::from_blob(
-        &start_pos, {1}, ::executorch::aten::ScalarType::Long);
+        &start_pos, {1}, ::executorch::aten::ScalarType::Int);
 
     // Run text model
     auto outputs_res = ET_UNWRAP(module_->execute(
