@@ -103,7 +103,7 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeInitVlm(
 
 JNIEXPORT jstring JNICALL
 Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeAnalyzeImage(
-        JNIEnv* env, jobject thiz, jobject bitmap, jstring prompt) {
+        JNIEnv* env, jobject thiz, jobject image_obj, jstring prompt) {
 
     // Check if runner exists and validate its state
     if (!g_runner) {
@@ -111,44 +111,39 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeAnalyzeImage(
         return env->NewStringUTF("Error: LLaVA not initialized");
     }
 
-    AndroidBitmapInfo info;
-    void* pixels;
-    if (AndroidBitmap_getInfo(env, bitmap, &info) < 0 ||
-        AndroidBitmap_lockPixels(env, bitmap, &pixels) < 0) {
-        LOGE("Error: Failed to process image");
-        return env->NewStringUTF("Error: Failed to process image");
-    }
+    // Get ETImage class and method IDs
+    jclass etImageClass = env->GetObjectClass(image_obj);
+    jmethodID getBytesMethod = env->GetMethodID(etImageClass, "getBytes", "()[B");
+    jmethodID getWidthMethod = env->GetMethodID(etImageClass, "getWidth", "()I");
+    jmethodID getHeightMethod = env->GetMethodID(etImageClass, "getHeight", "()I");
+
+    // Get image data from ETImage
+    jbyteArray bytes = (jbyteArray)env->CallObjectMethod(image_obj, getBytesMethod);
+    jint width = env->CallIntMethod(image_obj, getWidthMethod);
+    jint height = env->CallIntMethod(image_obj, getHeightMethod);
+
+    // Get byte array elements
+    jbyte* buffer = env->GetByteArrayElements(bytes, nullptr);
+    jsize length = env->GetArrayLength(bytes);
 
     ScopedStringChars prompt_chars(env, prompt);
     std::string result;
 
     try {
-        // Log the state before processing
-        LOGI("Processing image: %dx%d", info.width, info.height);
-
-        // Calculate resized dimensions
-        auto [resized_width, resized_height] = calculateResizedDimensions(
-            info.width, info.height);
-
-        // Add validation for the image processing state
-        if (resized_width <= 0 || resized_height <= 0) {
-            LOGE("Invalid image dimensions after resize: %dx%d", resized_width, resized_height);
-            return env->NewStringUTF("Error: Invalid image dimensions");
-        }
-
-        // Process image and handle any errors
+        // Create image vector
         std::vector<llm::Image> images;
         llm::Image img;
-        img.data.assign(static_cast<uint8_t*>(pixels),
-                       static_cast<uint8_t*>(pixels) + (info.width * info.height * 4));
-        img.width = resized_width;
-        img.height = resized_height;
-        img.channels = 3;
+        img.data.assign(reinterpret_cast<uint8_t*>(buffer), 
+                       reinterpret_cast<uint8_t*>(buffer) + length);
+        img.width = width;
+        img.height = height;
+        img.channels = 3;  // ETImage provides RGB format
         images.push_back(std::move(img));
 
-        // Add more detailed logging
-        LOGI("Image processed successfully, starting generation");
+        // Release byte array
+        env->ReleaseByteArrayElements(bytes, buffer, JNI_ABORT);
 
+        // Generate response
         auto err = g_runner->generate(
                 std::move(images),
                 prompt_chars.get(),
@@ -165,10 +160,10 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeAnalyzeImage(
         }
     } catch (const std::exception& e) {
         LOGE("Error during processing: %s", e.what());
+        env->ReleaseByteArrayElements(bytes, buffer, JNI_ABORT);
         return env->NewStringUTF(std::string("Error during processing: ").append(e.what()).c_str());
     }
 
-    AndroidBitmap_unlockPixels(env, bitmap);
     return env->NewStringUTF(result.c_str());
 }
 

@@ -70,17 +70,18 @@ private:
     BitmapLocker& operator=(const BitmapLocker&) = delete;
 };
 
-// Helper function to convert RGBA to RGB and CHW format
+// Helper function to convert RGB to CHW format
 std::vector<uint8_t> processImageData(const uint8_t* input, int width, int height) {
     if (!input) {
         throw std::runtime_error("Null input buffer");
     }
 
     const int in_channels = 4;  // RGBA
-    const int out_channels = 3; // RGB
+    const int out_channels = 3; // Keep RGB format
     std::vector<uint8_t> output(out_channels * height * width);
 
     try {
+        // Convert from HWC to CHW format
         for (int c = 0; c < out_channels; c++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
@@ -168,15 +169,12 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeTestVlm(
         JNIEnv* env, jobject thiz,
         jstring model_path,
         jstring tokenizer_path,
-        jobject bitmap) {
+        jbyteArray image_data,
+        jint width,
+        jint height) {
 
     try {
         LOGI("Starting VLM test...");
-
-        if (!bitmap) {
-            LOGE("Null bitmap received");
-            return JNI_FALSE;
-        }
 
         // Validate input parameters
         JStringWrapper model_path_wrapper(env, model_path);
@@ -187,16 +185,10 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeTestVlm(
             return JNI_FALSE;
         }
 
-        // Get bitmap info
-        AndroidBitmapInfo info;
-        if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {
-            LOGE("Failed to get bitmap info");
-            return JNI_FALSE;
-        }
-
-        // Validate bitmap format
-        if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-            LOGE("Unsupported bitmap format: %d", info.format);
+        // Get image data from Java byte array
+        jbyte* bytes = env->GetByteArrayElements(image_data, nullptr);
+        if (!bytes) {
+            LOGE("Failed to get image data");
             return JNI_FALSE;
         }
 
@@ -204,41 +196,28 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeTestVlm(
         const int TARGET_HEIGHT = 240;
         const int CHANNELS = 3;
 
-        // Process image with RAII bitmap locker
+        // Convert jbyte array to uint8_t vector
+        jsize array_length = env->GetArrayLength(image_data);
+        std::vector<uint8_t> rgb_data(bytes, bytes + array_length);
+        
+        // Release the byte array
+        env->ReleaseByteArrayElements(image_data, bytes, JNI_ABORT);
+
+        // Resize if needed
         std::vector<uint8_t> final_image;
-        {
-            BitmapLocker locker(env, bitmap);
-            uint8_t* pixels = static_cast<uint8_t*>(locker.getPixels());
-
-            if (!pixels) {
-                LOGE("Failed to get bitmap pixels");
-                return JNI_FALSE;
-            }
-
-            try {
-                LOGI("Processing image data...");
-                // First convert RGBA to RGB in CHW format
-                auto rgb_data = processImageData(pixels, info.width, info.height);
-
-                // Then resize if needed
-                if (info.width != TARGET_WIDTH || info.height != TARGET_HEIGHT) {
-                    LOGI("Resizing image from %dx%d to %dx%d",
-                         info.width, info.height, TARGET_WIDTH, TARGET_HEIGHT);
-                    final_image = resizeImage(
-                            rgb_data.data(),
-                            info.width,
-                            info.height,
-                            TARGET_WIDTH,
-                            TARGET_HEIGHT,
-                            CHANNELS
-                    );
-                } else {
-                    final_image = std::move(rgb_data);
-                }
-            } catch (const std::exception& e) {
-                LOGE("Image processing failed: %s", e.what());
-                return JNI_FALSE;
-            }
+        if (width != TARGET_WIDTH || height != TARGET_HEIGHT) {
+            LOGI("Resizing image from %dx%d to %dx%d",
+                 width, height, TARGET_WIDTH, TARGET_HEIGHT);
+            final_image = resizeImage(
+                    rgb_data.data(),
+                    width,
+                    height,
+                    TARGET_WIDTH,
+                    TARGET_HEIGHT,
+                    CHANNELS
+            );
+        } else {
+            final_image = std::move(rgb_data);
         }
 
         // Create runner with error checking
@@ -265,11 +244,11 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeTestVlm(
 
         // Prepare image for model
         std::vector<Image> images = {{
-                                             .data = final_image,
-                                             .width = TARGET_WIDTH,
-                                             .height = TARGET_HEIGHT,
-                                             .channels = CHANNELS
-                                     }};
+            .data = final_image,
+            .width = TARGET_WIDTH,
+            .height = TARGET_HEIGHT,
+            .channels = CHANNELS
+        }};
 
         // Setup callbacks with error handling
         auto token_callback = [](const std::string& token) {
@@ -308,11 +287,9 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeTestVlm(
         LOGI("Generation completed successfully");
         return JNI_TRUE;
 
+        return JNI_TRUE;
     } catch (const std::exception& e) {
-        LOGE("Test failed with exception: %s", e.what());
-        return JNI_FALSE;
-    } catch (...) {
-        LOGE("Test failed with unknown exception");
+        LOGE("Error during processing: %s", e.what());
         return JNI_FALSE;
     }
 }

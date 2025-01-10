@@ -13,6 +13,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 
+import com.executorch.ETImage;
+
 public class VLMEngineService extends BaseEngineService {
     static {
         boolean loaded = false;
@@ -38,14 +40,14 @@ public class VLMEngineService extends BaseEngineService {
 
     @Override
     public CompletableFuture<Boolean> initialize() {
-        testVlm();
+//        testVlm();
 
         if (!NATIVE_LIB_LOADED) {
             return CompletableFuture.completedFuture(false);
         }
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return testVlm();
+                return initializeLocalBackend();
             } catch (Exception e) {
                 Log.e(TAG, "Initialization failed", e);
                 return false;
@@ -122,16 +124,17 @@ public class VLMEngineService extends BaseEngineService {
         return "MTK backend not yet implemented";
     }
 
-    private String localCpuAnalyzeImage(Uri imageUri, String userPrompt) throws Exception {
-        InputStream inputStream = getContentResolver().openInputStream(imageUri);
-        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-        if (bitmap == null) {
-            throw new Exception("Failed to load image");
+    private String localCpuAnalyzeImage(Uri imageUri, String prompt) {
+        try {
+            // Create ETImage from Uri
+            ETImage image = new ETImage(getContentResolver(), imageUri);
+            
+            // The image is already resized in ETImage class
+            return nativeAnalyzeImage(image, prompt);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to analyze image", e);
+            return "Error: " + e.getMessage();
         }
-
-        String response = nativeAnalyzeImage(bitmap, userPrompt);
-        bitmap.recycle();
-        return response;
     }
 
     public void releaseResources() {
@@ -160,82 +163,39 @@ public class VLMEngineService extends BaseEngineService {
 
     // Native methods for local CPU backend
     private native boolean nativeInitVlm(String modelPath, String tokenizerPath);
-    private native String nativeAnalyzeImage(Bitmap bitmap, String prompt);
+    private native String nativeAnalyzeImage(ETImage image, String prompt);
     private native void nativeReleaseVlm();
 
     public boolean testVlm() {
         try {
-            // Match the exact paths from CLI example
             String modelPath = "/data/local/tmp/llama/llava.pte";
             String tokenizerPath = "/data/local/tmp/llama/tokenizer.bin";
-            String imagePath = "/data/local/tmp/llama/dog.jpg"; // Assuming it's an image file now
-
-            // Make sure the model and tokenizer files exist
-            for (String path : new String[]{modelPath, tokenizerPath, imagePath}) {
-                if (!new File(path).exists()) {
-                    Log.e(TAG, "File not found: " + path);
-                    return false;
-                }
-            }
-
-            // Load and process the image
-            Bitmap originalBitmap = BitmapFactory.decodeFile(imagePath);
-            if (originalBitmap == null) {
-                Log.e(TAG, "Failed to load image: " + imagePath);
+            String imagePath = "/data/local/tmp/llama/dog.jpg";
+            
+            File imageFile = new File(imagePath);
+            if (!imageFile.exists()) {
+                Log.e(TAG, "Image file not found: " + imagePath);
                 return false;
             }
-
-            // Resize image to match model's expected dimensions
-            // LLaVA expects 336 width while maintaining aspect ratio
-            final int TARGET_WIDTH = 336;
-            float aspectRatio = (float) originalBitmap.getHeight() / originalBitmap.getWidth();
-            int targetHeight = Math.round(TARGET_WIDTH * aspectRatio);
-
-            Bitmap resizedBitmap = Bitmap.createScaledBitmap(
-                    originalBitmap,
-                    TARGET_WIDTH,
-                    targetHeight,
-                    true // filter
+            
+            // Create ETImage from file path
+            ETImage image = new ETImage(getContentResolver(), Uri.fromFile(imageFile));
+            
+            // Call native method with ETImage data
+            return nativeTestVlm(
+                modelPath,
+                tokenizerPath,
+                image.getBytes(),
+                image.getWidth(),
+                image.getHeight()
             );
-
-            // Recycle the original bitmap if we don't need it anymore
-            if (originalBitmap != resizedBitmap) {
-                originalBitmap.recycle();
-            }
-
-            try {
-                // Convert bitmap to ARGB_8888 format if it isn't already
-                Bitmap processedBitmap = resizedBitmap;
-                if (resizedBitmap.getConfig() != Bitmap.Config.ARGB_8888) {
-                    Bitmap convertedBitmap = resizedBitmap.copy(Bitmap.Config.ARGB_8888, false);
-                    if (resizedBitmap != originalBitmap) {
-                        resizedBitmap.recycle();
-                    }
-                    processedBitmap = convertedBitmap;
-                }
-
-                // Call native method with the processed bitmap
-                boolean result = nativeTestVlm(modelPath, tokenizerPath, processedBitmap);
-
-                // Clean up
-                if (processedBitmap != originalBitmap) {
-                    processedBitmap.recycle();
-                }
-
-                return result;
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing bitmap", e);
-                if (resizedBitmap != originalBitmap) {
-                    resizedBitmap.recycle();
-                }
-                return false;
-            }
-
+            
         } catch (Exception e) {
             Log.e(TAG, "VLM test failed", e);
             return false;
         }
     }
 
-    public native boolean nativeTestVlm(String modelPath, String tokenizerPath, Bitmap bitmap);}
+    private native boolean nativeTestVlm(String modelPath, String tokenizerPath, 
+                                       byte[] imageData, int width, int height);
+}
