@@ -70,7 +70,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    
+
     // Kotlin coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
@@ -84,5 +84,5 @@ dependencies {
     implementation("com.facebook.fbjni:fbjni:0.5.1")
     implementation("com.google.code.gson:gson:2.8.6")
     implementation("com.facebook.soloader:soloader:0.10.5")
-    implementation(files("libs/executorch-llama.aar"))
+    implementation(files("libs/executorch.aar"))
 }

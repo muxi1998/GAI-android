@@ -15,14 +15,17 @@ import java.util.concurrent.CompletableFuture;
 
 public class VLMEngineService extends BaseEngineService {
     static {
+        boolean loaded = false;
         try {
-            System.loadLibrary("executorch");
-            System.loadLibrary("llava_runner");
             System.loadLibrary("vlm_jni");
+            loaded = true;
         } catch (UnsatisfiedLinkError e) {
             Log.e("VLMEngineService", "Failed to load native libraries", e);
         }
+        NATIVE_LIB_LOADED = loaded;
     }
+
+    private static final boolean NATIVE_LIB_LOADED;
 
     private static final String TAG = "VLMEngineService";
 
@@ -35,19 +38,16 @@ public class VLMEngineService extends BaseEngineService {
 
     @Override
     public CompletableFuture<Boolean> initialize() {
-        testVlm() ;
+        testVlm();
 
+        if (!NATIVE_LIB_LOADED) {
+            return CompletableFuture.completedFuture(false);
+        }
         return CompletableFuture.supplyAsync(() -> {
             try {
-                switch (backend) {
-                    case "mtk":
-                        return initializeMtkBackend();
-                    case "local":
-                    default:
-                        return initializeLocalBackend();
-                }
+                return testVlm();
             } catch (Exception e) {
-                Log.e(TAG, "Failed to initialize VLM", e);
+                Log.e(TAG, "Initialization failed", e);
                 return false;
             }
         });
@@ -168,9 +168,9 @@ public class VLMEngineService extends BaseEngineService {
             // Match the exact paths from CLI example
             String modelPath = "/data/local/tmp/llama/llava.pte";
             String tokenizerPath = "/data/local/tmp/llama/tokenizer.bin";
-            String imagePath = "/data/local/tmp/llama/image.pt";
+            String imagePath = "/data/local/tmp/llama/dog.jpg"; // Assuming it's an image file now
 
-            // Make sure the files exist
+            // Make sure the model and tokenizer files exist
             for (String path : new String[]{modelPath, tokenizerPath, imagePath}) {
                 if (!new File(path).exists()) {
                     Log.e(TAG, "File not found: " + path);
@@ -178,12 +178,64 @@ public class VLMEngineService extends BaseEngineService {
                 }
             }
 
-            return nativeTestVlm(modelPath, tokenizerPath, imagePath);
+            // Load and process the image
+            Bitmap originalBitmap = BitmapFactory.decodeFile(imagePath);
+            if (originalBitmap == null) {
+                Log.e(TAG, "Failed to load image: " + imagePath);
+                return false;
+            }
+
+            // Resize image to match model's expected dimensions
+            // LLaVA expects 336 width while maintaining aspect ratio
+            final int TARGET_WIDTH = 336;
+            float aspectRatio = (float) originalBitmap.getHeight() / originalBitmap.getWidth();
+            int targetHeight = Math.round(TARGET_WIDTH * aspectRatio);
+
+            Bitmap resizedBitmap = Bitmap.createScaledBitmap(
+                    originalBitmap,
+                    TARGET_WIDTH,
+                    targetHeight,
+                    true // filter
+            );
+
+            // Recycle the original bitmap if we don't need it anymore
+            if (originalBitmap != resizedBitmap) {
+                originalBitmap.recycle();
+            }
+
+            try {
+                // Convert bitmap to ARGB_8888 format if it isn't already
+                Bitmap processedBitmap = resizedBitmap;
+                if (resizedBitmap.getConfig() != Bitmap.Config.ARGB_8888) {
+                    Bitmap convertedBitmap = resizedBitmap.copy(Bitmap.Config.ARGB_8888, false);
+                    if (resizedBitmap != originalBitmap) {
+                        resizedBitmap.recycle();
+                    }
+                    processedBitmap = convertedBitmap;
+                }
+
+                // Call native method with the processed bitmap
+                boolean result = nativeTestVlm(modelPath, tokenizerPath, processedBitmap);
+
+                // Clean up
+                if (processedBitmap != originalBitmap) {
+                    processedBitmap.recycle();
+                }
+
+                return result;
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error processing bitmap", e);
+                if (resizedBitmap != originalBitmap) {
+                    resizedBitmap.recycle();
+                }
+                return false;
+            }
+
         } catch (Exception e) {
             Log.e(TAG, "VLM test failed", e);
             return false;
         }
     }
 
-    private native boolean nativeTestVlm(String modelPath, String tokenizerPath, String imagePath);
-}
+    public native boolean nativeTestVlm(String modelPath, String tokenizerPath, Bitmap bitmap);}

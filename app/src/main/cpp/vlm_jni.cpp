@@ -6,6 +6,8 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include "executorch/runtime/kernel/kernel_runtime_context.h"
+#include "executorch/runtime/kernel/operator_registry.h"
 
 #define LOG_TAG "VLMNative"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -123,7 +125,7 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeAnalyzeImage(
     try {
         // Log the state before processing
         LOGI("Processing image: %dx%d", info.width, info.height);
-        
+
         // Calculate resized dimensions
         auto [resized_width, resized_height] = calculateResizedDimensions(
             info.width, info.height);
@@ -137,7 +139,7 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeAnalyzeImage(
         // Process image and handle any errors
         std::vector<llm::Image> images;
         llm::Image img;
-        img.data.assign(static_cast<uint8_t*>(pixels), 
+        img.data.assign(static_cast<uint8_t*>(pixels),
                        static_cast<uint8_t*>(pixels) + (info.width * info.height * 4));
         img.width = resized_width;
         img.height = resized_height;
