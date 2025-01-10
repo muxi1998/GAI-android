@@ -20,8 +20,12 @@ public class ChatMessage {
         this.text = newText;
     }
 
-    public void appendText(String newText) {
-        this.text += newText;
+    public void appendText(String token) {
+        if (text == null) {
+            text = token;
+        } else {
+            text += token;
+        }
     }
 
     public boolean isUser() {
@@ -34,5 +38,9 @@ public class ChatMessage {
 
     public void setImageUri(Uri imageUri) {
         this.imageUri = imageUri;
+    }
+
+    public void setText(String newText) {
+        this.text = newText;
     }
 } 

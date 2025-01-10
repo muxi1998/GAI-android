@@ -1,16 +1,11 @@
 package com.mtkresearch.gai_android.service;
 
-import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 
 import com.executorch.ETImage;
@@ -95,7 +90,13 @@ public class VLMEngineService extends BaseEngineService {
         return isInitialized;
     }
 
-    public CompletableFuture<String> analyzeImage(Uri imageUri, String userPrompt) {
+    public interface VLMCallback {
+        void onToken(String token);
+        void onComplete(String fullResult);
+        void onError(String error);
+    }
+
+    public CompletableFuture<String> analyzeImage(Uri imageUri, String userPrompt, VLMCallback callback) {
         if (!isInitialized) {
             CompletableFuture<String> future = new CompletableFuture<>();
             future.completeExceptionally(new IllegalStateException("Engine not initialized"));
@@ -109,10 +110,11 @@ public class VLMEngineService extends BaseEngineService {
                         return mtkAnalyzeImage(imageUri, userPrompt);
                     case "local":
                     default:
-                        return localCpuAnalyzeImage(imageUri, userPrompt);
+                        return localCpuAnalyzeImage(imageUri, userPrompt, callback);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Failed to analyze image", e);
+                callback.onError("Error analyzing image: " + e.getMessage());
                 return "Error analyzing image: " + e.getMessage();
             }
         });
@@ -124,15 +126,13 @@ public class VLMEngineService extends BaseEngineService {
         return "MTK backend not yet implemented";
     }
 
-    private String localCpuAnalyzeImage(Uri imageUri, String prompt) {
+    private String localCpuAnalyzeImage(Uri imageUri, String prompt, VLMCallback callback) {
         try {
-            // Create ETImage from Uri
             ETImage image = new ETImage(getContentResolver(), imageUri);
-            
-            // The image is already resized in ETImage class
-            return nativeAnalyzeImage(image, prompt);
+            return nativeAnalyzeImage(image, prompt, new NativeVLMCallback(callback));
         } catch (Exception e) {
             Log.e(TAG, "Failed to analyze image", e);
+            callback.onError("Error: " + e.getMessage());
             return "Error: " + e.getMessage();
         }
     }
@@ -163,7 +163,7 @@ public class VLMEngineService extends BaseEngineService {
 
     // Native methods for local CPU backend
     private native boolean nativeInitVlm(String modelPath, String tokenizerPath);
-    private native String nativeAnalyzeImage(ETImage image, String prompt);
+    private native String nativeAnalyzeImage(ETImage image, String prompt, NativeVLMCallback nativeVLMCallback);
     private native void nativeReleaseVlm();
 
     public boolean testVlm() {
@@ -198,4 +198,22 @@ public class VLMEngineService extends BaseEngineService {
 
     private native boolean nativeTestVlm(String modelPath, String tokenizerPath, 
                                        byte[] imageData, int width, int height);
+
+    private static class NativeVLMCallback {
+        private final VLMCallback callback;
+        private final StringBuilder fullResult = new StringBuilder();
+
+        NativeVLMCallback(VLMCallback callback) {
+            this.callback = callback;
+        }
+
+        public void onToken(String token) {
+            fullResult.append(token);
+            callback.onToken(token);
+        }
+
+        public String getFullResult() {
+            return fullResult.toString();
+        }
+    }
 }

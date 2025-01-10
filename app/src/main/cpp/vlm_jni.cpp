@@ -103,68 +103,68 @@ Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeInitVlm(
 
 JNIEXPORT jstring JNICALL
 Java_com_mtkresearch_gai_1android_service_VLMEngineService_nativeAnalyzeImage(
-        JNIEnv* env, jobject thiz, jobject image_obj, jstring prompt) {
+        JNIEnv* env, jobject thiz, jobject image_obj, jstring prompt, jobject callback_obj) {
 
-    // Check if runner exists and validate its state
-    if (!g_runner) {
-        LOGE("Error: LLaVA not initialized");
-        return env->NewStringUTF("Error: LLaVA not initialized");
-    }
+    // Get callback class and methods
+    jclass callback_class = env->GetObjectClass(callback_obj);
+    jmethodID onToken = env->GetMethodID(callback_class, "onToken", "(Ljava/lang/String;)V");
 
-    // Get ETImage class and method IDs
-    jclass etImageClass = env->GetObjectClass(image_obj);
-    jmethodID getBytesMethod = env->GetMethodID(etImageClass, "getBytes", "()[B");
-    jmethodID getWidthMethod = env->GetMethodID(etImageClass, "getWidth", "()I");
-    jmethodID getHeightMethod = env->GetMethodID(etImageClass, "getHeight", "()I");
-
-    // Get image data from ETImage
-    jbyteArray bytes = (jbyteArray)env->CallObjectMethod(image_obj, getBytesMethod);
-    jint width = env->CallIntMethod(image_obj, getWidthMethod);
-    jint height = env->CallIntMethod(image_obj, getHeightMethod);
-
-    // Get byte array elements
-    jbyte* buffer = env->GetByteArrayElements(bytes, nullptr);
-    jsize length = env->GetArrayLength(bytes);
-
-    ScopedStringChars prompt_chars(env, prompt);
-    std::string result;
+    // Create token callback that filters out only the stop tokens and initial whitespace
+    auto token_callback = [env, callback_obj, onToken](const std::string& token) {
+        static bool isFirstToken = true;
+        
+        // Skip if token is the stop token "</s>"
+        if (token != "</s>") {
+            // Skip initial whitespace token
+            if (isFirstToken && token.find_first_not_of(" \t\n\r") == std::string::npos) {
+                isFirstToken = false;
+                return;
+            }
+            
+            jstring jtoken = env->NewStringUTF(token.c_str());
+            env->CallVoidMethod(callback_obj, onToken, jtoken);
+            env->DeleteLocalRef(jtoken);
+            isFirstToken = false;
+        }
+    };
 
     try {
-        // Create image vector
-        std::vector<llm::Image> images;
-        llm::Image img;
-        img.data.assign(reinterpret_cast<uint8_t*>(buffer), 
-                       reinterpret_cast<uint8_t*>(buffer) + length);
-        img.width = width;
-        img.height = height;
-        img.channels = 3;  // ETImage provides RGB format
-        images.push_back(std::move(img));
+        // Get image data from ETImage
+        jclass etImageClass = env->GetObjectClass(image_obj);
+        jmethodID getBytesMethod = env->GetMethodID(etImageClass, "getBytes", "()[B");
+        jmethodID getWidthMethod = env->GetMethodID(etImageClass, "getWidth", "()I");
+        jmethodID getHeightMethod = env->GetMethodID(etImageClass, "getHeight", "()I");
 
-        // Release byte array
-        env->ReleaseByteArrayElements(bytes, buffer, JNI_ABORT);
+        jbyteArray bytes = (jbyteArray)env->CallObjectMethod(image_obj, getBytesMethod);
+        jint width = env->CallIntMethod(image_obj, getWidthMethod);
+        jint height = env->CallIntMethod(image_obj, getHeightMethod);
 
-        // Generate response
+        std::vector<llm::Image> images = {{
+            .data = std::vector<uint8_t>(env->GetByteArrayElements(bytes, nullptr),
+                                       env->GetByteArrayElements(bytes, nullptr) + 
+                                       env->GetArrayLength(bytes)),
+            .width = width,
+            .height = height,
+            .channels = 3
+        }};
+
+        // Let LLaVA runner handle the prompt formatting
         auto err = g_runner->generate(
-                std::move(images),
-                prompt_chars.get(),
-                DEFAULT_SEQ_LEN,
-                [&result](const std::string& token) {
-                    result += token;
-                    LOGI("Generated token: %s", token.c_str());
-                }
+            std::move(images),
+            env->GetStringUTFChars(prompt, nullptr),
+            DEFAULT_SEQ_LEN,
+            token_callback
         );
 
-        if (err != ::executorch::runtime::Error::Ok) {
-            LOGE("Generation error: %d", static_cast<int>(err));
-            result = "Error during generation";
-        }
+        // Get final result from callback object
+        jmethodID getFullResult = env->GetMethodID(callback_class, "getFullResult", "()Ljava/lang/String;");
+        jstring result = (jstring)env->CallObjectMethod(callback_obj, getFullResult);
+        
+        return result;
     } catch (const std::exception& e) {
         LOGE("Error during processing: %s", e.what());
-        env->ReleaseByteArrayElements(bytes, buffer, JNI_ABORT);
         return env->NewStringUTF(std::string("Error during processing: ").append(e.what()).c_str());
     }
-
-    return env->NewStringUTF(result.c_str());
 }
 
 JNIEXPORT void JNICALL

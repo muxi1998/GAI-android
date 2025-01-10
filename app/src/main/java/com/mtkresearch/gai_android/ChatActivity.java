@@ -506,22 +506,52 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
         adapter.addMessage(userMessage);
         scrollToLatestMessage(true);
 
+        // Create AI message for response
+        ChatMessage aiMessage = new ChatMessage("", false);
+        adapter.addMessage(aiMessage);
+
         // Process with VLM service
-        vlmService.analyzeImage(imageUri, message)
-            .thenAccept(response -> {
+        vlmService.analyzeImage(imageUri, message, new VLMEngineService.VLMCallback() {
+            private StringBuilder responseBuilder = new StringBuilder();
+
+            @Override
+            public void onToken(String token) {
+                // Remove any user message prefix if present in first token
+                if (responseBuilder.length() == 0 && token.contains(message)) {
+                    token = token.substring(message.length()).trim();
+                }
+                
+                responseBuilder.append(token);
                 runOnUiThread(() -> {
-                    ChatMessage aiMessage = new ChatMessage(response, false);
-                    adapter.addMessage(aiMessage);
+                    aiMessage.setText(responseBuilder.toString().trim());
+                    adapter.notifyItemChanged(adapter.getItemCount() - 1);
+                    scrollToLatestMessage(false);
+                });
+            }
+
+            @Override
+            public void onComplete(String fullResult) {
+                runOnUiThread(() -> {
+                    String cleanResult = responseBuilder.toString().trim();
+                    // Final cleanup of any user message prefix
+                    if (cleanResult.startsWith(message)) {
+                        cleanResult = cleanResult.substring(message.length()).trim();
+                    }
+                    aiMessage.setText(cleanResult);
+                    adapter.notifyItemChanged(adapter.getItemCount() - 1);
                     scrollToLatestMessage(true);
                 });
-            })
-            .exceptionally(throwable -> {
-                Log.e(TAG, "Error analyzing image", throwable);
+            }
+
+            @Override
+            public void onError(String error) {
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Error analyzing image", Toast.LENGTH_SHORT).show();
+                    aiMessage.setText("Error: " + error);
+                    adapter.notifyItemChanged(adapter.getItemCount() - 1);
+                    Toast.makeText(ChatActivity.this, error, Toast.LENGTH_SHORT).show();
                 });
-                return null;
-            });
+            }
+        });
     }
 
     private void handleImageInput() {
