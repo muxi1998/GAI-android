@@ -61,11 +61,11 @@ android {
     }
 
     // TODO: refactor this, currently used for MTK NPU support
-    // externalNativeBuild {
-    //     cmake {
-    //         path = File("src/main/cpp/CMakeLists.txt")
-    //     }
-    // }
+     externalNativeBuild {
+         cmake {
+             path = File("src/main/cpp/CMakeLists.txt")
+         }
+     }
 
     flavorDimensions += "version"
     productFlavors {

@@ -59,7 +59,7 @@ public class VLMEngineService extends BaseEngineService {
     private boolean initializeLocalBackend() {
         try {
             String modelPath = "/data/local/tmp/llama/llava.pte";
-            String tokenizerPath = "/data/local/tmp/llama/tokenizer.bin";
+            String tokenizerPath = "/data/local/tmp/llama/tokenizer_llava.bin";
 
             // Add file existence check
             if (!new File(modelPath).exists()) {
