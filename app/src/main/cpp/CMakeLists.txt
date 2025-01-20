@@ -21,7 +21,7 @@ add_library(llm_jni SHARED
 find_library(log-lib log)
 
 # Specify the path to your prebuilt libraries
-set(PREBUILT_LIB_DIR ${CMAKE_SOURCE_DIR}/../libs/arm64-v8a)
+set(PREBUILT_LIB_DIR ${CMAKE_SOURCE_DIR}/../../../libs/arm64-v8a)
 
 # Link against prebuilt libraries and c++_shared
 target_link_libraries(llm_jni
@@ -37,7 +37,7 @@ target_link_libraries(llm_jni
 
 # Set the output directory for the built library
 set_target_properties(llm_jni PROPERTIES
-        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../libs/arm64-v8a
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../../../libs/arm64-v8a
 )
 
 # Add this section to ensure symbols are properly exported
