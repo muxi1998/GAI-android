@@ -14,14 +14,14 @@ import java.util.concurrent.TimeUnit;
 
 
 public class LLMEngineService extends BaseEngineService {
-//    static {
-//        System.loadLibrary("llm_jni");
-//    }
+   static {
+       System.loadLibrary("llm_jni");
+   }
 
     private static final String TAG = "LLMEngineService";
     private static final long INIT_TIMEOUT_MS = 120000;
     private static final long GENERATION_TIMEOUT_MS = 30000;
-    private static final boolean MTK_BACKEND_AVAILABLE = false;
+    private static final boolean MTK_BACKEND_AVAILABLE = true;
     private static final String DEFAULT_ERROR_RESPONSE = "[!!!] LLM engine backend failed";
     private String backend = "none";
     
