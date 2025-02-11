@@ -293,7 +293,7 @@ public class ChatActivity extends AppCompatActivity implements ChatMessageAdapte
                 // Start LLM service first with retry mechanism
                 Intent llmIntent = new Intent(this, LLMEngineService.class);
                 llmIntent.putExtra("model_path", "/data/local/tmp/llama/breeze-tiny-instruct_0203.pte");
-                llmIntent.putExtra("preferred_backend", "mtk");
+                llmIntent.putExtra("preferred_backend", "cpu");
                 
                 // Use CountDownLatch to ensure service binding completes
                 CountDownLatch bindLatch = new CountDownLatch(1);
