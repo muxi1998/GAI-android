@@ -179,6 +179,49 @@
     <string name="text_copied_to_clipboard">Text copied to clipboard</string>
     <string name="image_saved_to_pictures">Image saved to Pictures</string>
     <string name="error_saving_image">Error saving image</string>
+    
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <!-- ## ModelDownloadDialog -->
+    <string name="download_model">Download Model</string>
+    <string name="model_missing_message">Required model file is missing. Download size is approximately %1$s.</string>
+    <string name="model_missing_message_ram_constraint">Required model file is missing. Download size is approximately %1$s.\n\nNote: Due to RAM constraints on your device (%2$d GB available, %3$d GB recommended for large model), we suggest using the smaller %4$s model for better performance.</string>
+    <string name="model_missing_message_variant">Required %1$s model file is missing. Download size is approximately %2$s.</string>
+    <string name="calculating_size">...calculating...</string>
+    <string name="model_missing_message_tts">Required TTS model files are missing. Download size is approximately 125MB.</string>
+    <string name="download">Download</string>
+    <string name="downloading">Downloading...</string>
+    <string name="downloading_file">Downloading %1$s</string>
+    <string name="download_progress">Download progress: %1$d%%</string>
+    <string name="download_progress_tts">Downloading TTS model: %1$d%%</string>
+    <string name="download_complete">Download complete</string>
+    <string name="download_complete_tts">TTS model download complete</string>
+    <string name="download_failed">Download failed: %1$s</string>
+    <string name="download_failed_tts">TTS model download failed: %1$s</string>
+    <string name="retry">Retry</string>
+    <string name="download_cancelled">Download cancelled</string>
+    <string name="download_paused">Download paused</string>
+    <string name="download_resuming">Resuming download…</string>
+    <string name="download_partially_complete">Some files were downloaded successfully</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="overall_progress">Overall Progress</string>
+    <string name="model_files">Model Files</string>
+    <string name="error_preparing_download">Error preparing download</string>
+    <string name="error_all_download_attempts_failed">All download attempts failed</string>
+    <string name="error_downloading_model">Error downloading model: %1$s</string>
+    <string name="error_downloading_tts_model">Error downloading TTS model: %1$s</string>
+    <string name="error_creating_model_directory">Error creating model directory</string>
+    <string name="insufficient_storage_for_download">Insufficient storage space. Please free up at least %1$dGB.</string>
+    <string name="insufficient_storage_for_download_mb">Insufficient storage space. Please free up at least %1$dMB.</string>
+
+    <!-- File download status strings -->
+    <string name="download_status_pending">Pending</string>
+    <string name="download_status_in_progress">%1$d%%</string>
+    <string name="download_status_paused">Paused</string>
+    <string name="download_status_completed">Completed</string>
+    <string name="download_status_failed">Failed</string>
+    <string name="download_size_format">%1$s / %2$s</string>
+    <string name="unknown_size">Unknown size</string>
 
     <!-- binding.modelNameText.setText -->
     <string name="unknown_model">Unknown model</string>
@@ -226,21 +269,7 @@
     <string name="start_new_chat">Start new chat</string>
     <string name="choose_a_voice">Choose a voice</string>
 
-    <!-- ## ModelDownloadDialog -->
-    <string name="download_model">Download Model</string>
-    <string name="model_missing_message">Required model file is missing. Download size is approximately 6GB.</string>
-    <string name="model_missing_message_tts">Required TTS model files are missing. Download size is approximately 125MB.</string>
-    <string name="download">Download</string>
-    <string name="downloading">Downloading...</string>
-    <string name="download_progress">Download progress: %1$d%%</string>
-    <string name="download_complete">Download complete</string>
-    <string name="download_failed">Download failed: %1$s</string>
-    <string name="insufficient_storage_for_download">Insufficient storage space. Please free up at least %1$dGB.</string>
-    <string name="insufficient_storage_for_download_mb">Insufficient storage space. Please free up at least %1$dMB.</string>
-    <string name="error_creating_model_directory">Error creating model directory</string>
-    <string name="error_downloading_model">Error downloading model: %1$s</string>
-    <string name="download_cancelled">Download cancelled</string>
-    <string name="error_all_download_attempts_failed">All download attempts failed</string>
+
 
     <!-- Model Status -->
     <string name="model_status_llm_found">✅ Found</string>
@@ -279,11 +308,31 @@
     <string name="html_indent">&amp;nbsp;&amp;nbsp;&amp;nbsp;</string>
     <string name="html_linebreak">&lt;br/&gt;</string>
 
-    <!-- Download Progress Messages -->
-    <string name="download_progress_tts">Downloading TTS models: %1$d%%</string>
-    <string name="download_complete_tts">TTS models downloaded successfully</string>
-    <string name="download_failed_tts">Failed to download TTS models: %1$s</string>
-    <string name="error_downloading_tts_model">Error downloading TTS models: %1$s</string>
-    <string name="error_all_download_attempts_failed_tts">All TTS model download attempts failed</string>
+    <string name="LLM_invalid_token_error">I apologize, but I was unable to generate a valid response. This might be due to the complexity of the question or current model limitations. Please try rephrasing your question.</string>
+    <string name="LLM_generation_timeout">I apologize, but the response generation took too long and had to be interrupted. Please try asking a different question or breaking this one into smaller parts.</string>
+
+    <!-- Model Size Selection Strings -->
+    <string name="model_size_preference_title">LLM Model Size</string>
+    <string name="model_size_large">Large Model (High Quality)</string>
+    <string name="model_size_small">Small Model (Memory Efficient)</string>
+    <string name="model_size_auto">Automatic (Based on Device)</string>
+    <string name="model_size_warning_title">Warning: Insufficient RAM</string>
+    <string name="model_size_warning_message">Your device has insufficient RAM to run the large model (%1$d GB required, %2$d GB available). Using the large model may cause crashes or very slow performance. Are you sure you want to continue?</string>
+    <string name="model_size_warning_confirm">Use Anyway</string>
+    <string name="model_size_warning_cancel">Use Small Model</string>
+    <string name="model_size_current">Current: %s</string>
+    <string name="ram_info">RAM: %d GB Available / %d GB Required</string>
+    
+    <!-- Backend Selection Strings -->
+
+    <!-- Model Selection Dialog -->
+    <string name="model_selection_title">Select Breeze Model Variant</string>
+    <string name="model_selection_description">Choose the Breeze model variant that best fits your device. %1$s</string>
+    <string name="large_model_recommended">We recommend the High Performance variant for your device.</string>
+    <string name="small_model_recommended">We recommend the Small variant for your device due to memory constraints.</string>
+    <string name="quantization_notice">⚠️ Important: On devices with less than 7GB RAM, a quantized model is used, which may occasionally produce less accurate responses compared to the full model.</string>
+    <string name="large_model_option">%1$s (%2$s)\nBetter quality, more capabilities, but requires more memory</string>
+    <string name="small_model_option">%1$s (%2$s)\nFaster startup, less memory usage, suitable for devices with limited resources</string>
+    <string name="continue_button">Continue</string>
 
 </resources>

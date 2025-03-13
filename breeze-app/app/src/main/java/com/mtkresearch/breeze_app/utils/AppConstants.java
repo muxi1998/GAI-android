@@ -4,6 +4,8 @@ import android.content.Context;
 import java.io.File;
 import android.util.Log;
 import java.io.IOException;
+import android.app.ActivityManager;
+import android.content.SharedPreferences;
 
 public class AppConstants {
     private static final String TAG = "AppConstants";
@@ -49,10 +51,29 @@ public class AppConstants {
     public static final long LLM_NATIVE_OP_TIMEOUT_MS = 10000;  // 10 seconds for native ops
     public static final long LLM_CLEANUP_TIMEOUT_MS = 10000;  // 10 seconds for cleanup
     public static final int LLM_MAX_MTK_INIT_ATTEMPTS = 3;
-    
+    public static final String DEFAULT_SYSTEM_PROMPT = "你是擁有臺灣知識的語言模型，請用繁體中文或英文回答以下問題";
+
     // Model Files and Paths
-    public static final String LLAMA_MODEL_FILE = "llama3_2.pte";
+    public static final String LLAMA_MODEL_FILE = "Breeze-Tiny-Instruct-v0_1-2048.pte";
     public static final String BREEZE_MODEL_FILE = "Breeze-Tiny-Instruct-v0_1-2048.pte";
+    public static final String BREEZE_MODEL_DISPLAY_NAME = "Breeze Tiny Instruct v0.1 (2048)";
+    
+    // LLM Model Size Options
+    public static final String LARGE_LLM_MODEL_FILE = "Breeze-Tiny-Instruct-v0_1-2048.pte";
+    public static final String SMALL_LLM_MODEL_FILE = "Breeze-Tiny-Instruct-v0_1-2048-spin.pte";
+    public static final String LARGE_LLM_MODEL_DISPLAY_NAME = "Breeze2";
+    public static final String SMALL_LLM_MODEL_DISPLAY_NAME = "Breeze2-spinQuant";
+    
+    // RAM Requirements
+    public static final long MIN_RAM_REQUIRED_GB = 7; // Minimum RAM for the app to run
+    public static final long LARGE_MODEL_MIN_RAM_GB = 10; // Minimum RAM for large model
+    
+    // Model Selection Key
+    public static final String KEY_MODEL_SIZE_PREFERENCE = "model_size_preference";
+    public static final String MODEL_SIZE_LARGE = "large";
+    public static final String MODEL_SIZE_SMALL = "small";
+    public static final String MODEL_SIZE_AUTO = "auto"; // Let the app decide based on available RAM
+    
     public static final String LLAMA_MODEL_DIR = "/data/local/tmp/llama/";  // Legacy location
     public static final String APP_MODEL_DIR = "models";  // New path relative to app's private storage
     public static final String LLM_TOKENIZER_FILE = "tokenizer.bin";  // Add tokenizer filename constant
@@ -63,10 +84,97 @@ public class AppConstants {
     public static final String TTS_LEXICON_FILE = "lexicon.txt";
     public static final String TTS_TOKENS_FILE = "tokens.txt";
     
+    // Model Download Constants
+    public static final String MODEL_BASE_URL = "https://huggingface.co/MediaTek-Research/Breeze-Tiny-Instruct-v0_1-mobile/resolve/main/";
+    
+    // Model Download URLs - defined before usage in LLM_DOWNLOAD_FILES
+    public static final String[] MODEL_DOWNLOAD_URLS = {
+        // Tokenizer - small file, use regular URL
+        MODEL_BASE_URL + "tokenizer.bin?download=true",
+        // Model file - try multiple reliable sources
+        MODEL_BASE_URL + BREEZE_MODEL_FILE + "?download=true"
+    };
+    
     // TTS Model Download URLs
     private static final String TTS_MODEL_BASE_URL = "https://huggingface.co/MediaTek-Research/Breeze2-VITS-onnx/resolve/main/";
     private static final String TTS_HF_MIRROR_URL = "https://hf-mirror.com/MediaTek-Research/Breeze2-VITS-onnx/resolve/main/";
     
+    // Download status constants
+    public static final int DOWNLOAD_STATUS_PENDING = 0;
+    public static final int DOWNLOAD_STATUS_IN_PROGRESS = 1;
+    public static final int DOWNLOAD_STATUS_PAUSED = 2;
+    public static final int DOWNLOAD_STATUS_COMPLETED = 3;
+    public static final int DOWNLOAD_STATUS_FAILED = 4;
+    
+    // File type constants
+    public static final String FILE_TYPE_LLM = "LLM Model";
+    public static final String FILE_TYPE_TOKENIZER = "Tokenizer";
+    public static final String FILE_TYPE_TTS_MODEL = "TTS Model";
+    public static final String FILE_TYPE_TTS_LEXICON = "TTS Lexicon";
+    public static final String FILE_TYPE_TTS_TOKENS = "TTS Tokens";
+    
+    
+    // Download file information
+    public static final class DownloadFileInfo {
+        public final String url;
+        public final String fileName;
+        public final String displayName;
+        public final String fileType;
+        public final long fileSize;
+        
+        public DownloadFileInfo(String url, String fileName, String displayName, String fileType, long fileSize) {
+            this.url = url;
+            this.fileName = fileName;
+            this.displayName = displayName;
+            this.fileType = fileType;
+            this.fileSize = fileSize;
+        }
+    }
+    
+    // LLM related download files
+    public static final DownloadFileInfo[] LLM_DOWNLOAD_FILES = {
+        new DownloadFileInfo(
+            MODEL_DOWNLOAD_URLS[0], // Using first URL from MODEL_DOWNLOAD_URLS
+            LLM_TOKENIZER_FILE,
+            "Tokenizer",
+            FILE_TYPE_TOKENIZER,
+            5 * 1024 * 1024 // ~5MB estimate
+        ),
+        new DownloadFileInfo(
+            MODEL_DOWNLOAD_URLS[1], // Using second URL from MODEL_DOWNLOAD_URLS 
+            BREEZE_MODEL_FILE,
+            "Language Model",
+            FILE_TYPE_LLM,
+            6 * 1024 * 1024 * 1024L // 6GB estimate
+        )
+    };
+    
+    // TTS related download files
+    public static final DownloadFileInfo[] TTS_DOWNLOAD_FILES = {
+        new DownloadFileInfo(
+            TTS_MODEL_BASE_URL + TTS_MODEL_FILE + "?download=true",
+            TTS_MODEL_FILE,
+            "TTS Model", 
+            FILE_TYPE_TTS_MODEL,
+            100 * 1024 * 1024 // ~100MB estimate
+        ),
+        new DownloadFileInfo(
+            TTS_MODEL_BASE_URL + TTS_LEXICON_FILE + "?download=true",
+            TTS_LEXICON_FILE,
+            "Lexicon",
+            FILE_TYPE_TTS_LEXICON,
+            1 * 1024 * 1024 // ~1MB estimate
+        ),
+        new DownloadFileInfo(
+            TTS_MODEL_BASE_URL + "tokens.txt?download=true",
+            "tokens.txt",
+            "Tokens",
+            FILE_TYPE_TTS_TOKENS,
+            100 * 1024 // ~100KB estimate
+        )
+    };
+    
+    // TTS Model Download URLs (keeping for backward compatibility)
     public static final String[] TTS_MODEL_DOWNLOAD_URLS = {
         // Primary TTS model files
         TTS_MODEL_BASE_URL + TTS_MODEL_FILE + "?download=true",
@@ -152,8 +260,11 @@ public class AppConstants {
 
     // Get the model path to use, prioritizing legacy location
     public static String getModelPath(Context context) {
+        // Get the appropriate model file based on preferences and RAM
+        String modelFileName = getAppropriateModelFile(context);
+        
         // First check the legacy location
-        File legacyModelFile = new File(LLAMA_MODEL_DIR, BREEZE_MODEL_FILE);
+        File legacyModelFile = new File(LLAMA_MODEL_DIR, modelFileName);
         Log.d("AppConstants", "Checking legacy model path: " + legacyModelFile.getAbsolutePath());
         if (legacyModelFile.exists() && legacyModelFile.length() > 0) {
             Log.d("AppConstants", "Found model in legacy directory: " + legacyModelFile.getAbsolutePath());
@@ -161,7 +272,7 @@ public class AppConstants {
         }
 
         // If not in legacy location, use app's private storage path
-        File appModelFile = new File(new File(context.getFilesDir(), APP_MODEL_DIR), BREEZE_MODEL_FILE);
+        File appModelFile = new File(new File(context.getFilesDir(), APP_MODEL_DIR), modelFileName);
         Log.d("AppConstants", "Using app model path: " + appModelFile.getAbsolutePath());
         return appModelFile.getAbsolutePath();
     }
@@ -181,13 +292,16 @@ public class AppConstants {
 
     // Check if model needs to be downloaded
     public static boolean needsModelDownload(Context context) {
-        // First check legacy location
-        if (isModelInLegacyLocation()) {
+        String modelFileName = getAppropriateModelFile(context);
+        
+        // First check if model exists in legacy location
+        File legacyModelFile = new File(LLAMA_MODEL_DIR, modelFileName);
+        if (legacyModelFile.exists() && legacyModelFile.length() > 0) {
             return false;
         }
 
         // Then check app's private storage
-        File appModelFile = new File(new File(context.getFilesDir(), APP_MODEL_DIR), BREEZE_MODEL_FILE);
+        File appModelFile = new File(new File(context.getFilesDir(), APP_MODEL_DIR), modelFileName);
         return !appModelFile.exists() || appModelFile.length() == 0;
     }
 
@@ -200,7 +314,7 @@ public class AppConstants {
 
     // LLM Sequence Length Constants - these should be calculated based on the current model path
     public static int getLLMMaxSeqLength(Context context) {
-        return getCurrentModelPath(context).contains("2048") ? 2048 : 128;
+        return getCurrentModelPath(context).contains("2048") ? 512 : 128;
     }
 
     public static int getLLMMinOutputLength(Context context) {
@@ -209,6 +323,39 @@ public class AppConstants {
 
     public static int getLLMMaxInputLength(Context context) {
         return getLLMMaxSeqLength(context) - getLLMMinOutputLength(context);
+    }
+    
+    // Get the available RAM in GB
+    public static long getAvailableRamGB(Context context) {
+        ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        activityManager.getMemoryInfo(memoryInfo);
+        
+        // Convert total memory from bytes to GB
+        return memoryInfo.totalMem / (1024 * 1024 * 1024);
+    }
+    
+    // Check if device has enough RAM for large model
+    public static boolean canUseLargeModel(Context context) {
+        return getAvailableRamGB(context) >= LARGE_MODEL_MIN_RAM_GB;
+    }
+    
+    // Get the appropriate model file based on user preference and RAM constraints
+    public static String getAppropriateModelFile(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String modelSizePreference = prefs.getString(KEY_MODEL_SIZE_PREFERENCE, MODEL_SIZE_AUTO);
+        
+        // For auto preference, choose based on available RAM
+        if (modelSizePreference.equals(MODEL_SIZE_AUTO)) {
+            return canUseLargeModel(context) ? LARGE_LLM_MODEL_FILE : SMALL_LLM_MODEL_FILE;
+        }
+        
+        // For explicit preferences, respect the user's choice between Breeze variants
+        if (modelSizePreference.equals(MODEL_SIZE_LARGE)) {
+            return LARGE_LLM_MODEL_FILE; // Breeze high performance variant
+        } else {
+            return SMALL_LLM_MODEL_FILE; // Breeze small variant
+        }
     }
     
     // LLM Response Messages
@@ -247,25 +394,21 @@ public class AppConstants {
     public static final String MAIN_ACTIVITY_TAG = "MainActivity";
     public static final String AUDIO_CHAT_ACTIVITY_TAG = "AudioChatActivity";
 
-    // Model Download Constants
-    private static final String MODEL_BASE_URL = "https://huggingface.co/MediaTek-Research/Breeze-Tiny-Instruct-v0_1-mobile/resolve/main/";
-    private static final String HF_MIRROR_URL = "https://hf-mirror.com/MediaTek-Research/Breeze-Tiny-Instruct-v0_1-mobile/resolve/main/";
-    
-    public static final String[] MODEL_DOWNLOAD_URLS = {
-        // Tokenizer - small file, use regular URL
-        MODEL_BASE_URL + "tokenizer.bin?download=true",
-        // Model file - try multiple reliable sources
-        MODEL_BASE_URL + BREEZE_MODEL_FILE + "?download=true",
-        HF_MIRROR_URL + BREEZE_MODEL_FILE + "?download=true"
-    };
+
 
     // HTTP Headers
     public static final String[][] DOWNLOAD_HEADERS = {
-        {"User-Agent", "BreezeApp/1.0"},
-        {"Accept", "application/octet-stream"},
+        {"User-Agent", "Mozilla/5.0 (Android) BreezeApp"},
+        {"Accept", "*/*"},
         {"Connection", "keep-alive"}
     };
 
+    // Logging control for downloads
+    public static final boolean ENABLE_DOWNLOAD_VERBOSE_LOGGING = false; // Set to true for debug builds, false for release
+    
+    // File size units
+    public static final String[] FILE_SIZE_UNITS = { "B", "KB", "MB", "GB", "TB" };
+    
     // Optimize buffer size for large files (8MB buffer)
     public static final int MODEL_DOWNLOAD_BUFFER_SIZE = 8 * 1024 * 1024;
     
