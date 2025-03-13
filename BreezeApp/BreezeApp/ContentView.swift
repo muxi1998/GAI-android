@@ -7,13 +7,6 @@
 
 import SwiftUI
 
-// Forward declarations of the required types to fix compilation errors
-typealias LLMService = BreezeApp.Models.LLMService
-typealias VLMService = BreezeApp.Models.VLMService
-typealias ASRService = BreezeApp.Models.ASRService
-typealias TTSService = BreezeApp.Models.TTSService
-typealias Message = BreezeApp.Models.Message
-
 struct ContentView: View {
     @EnvironmentObject var llmService: LLMService
     @EnvironmentObject var vlmService: VLMService
