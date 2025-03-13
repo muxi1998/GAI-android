@@ -20,6 +20,18 @@ struct BreezeApp: App {
     @StateObject private var asrService = ASRService()
     @StateObject private var ttsService = TTSService()
     
+    // Create utility instances
+    @StateObject private var logManager = LogManager()
+    @StateObject private var resourceManager = ResourceManager()
+    
+    init() {
+        // Set up global configurations
+        setupGlobalAppearance()
+        
+        // Log app launch
+        print("BreezeApp launched")
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -27,6 +39,25 @@ struct BreezeApp: App {
                 .environmentObject(vlmService)
                 .environmentObject(asrService)
                 .environmentObject(ttsService)
+                .environmentObject(logManager)
+                .environmentObject(resourceManager)
+                .onAppear {
+                    setupResources()
+                }
+        }
+    }
+    
+    private func setupGlobalAppearance() {
+        // Configure global appearance settings
+        UINavigationBar.appearance().tintColor = .systemBlue
+    }
+    
+    private func setupResources() {
+        do {
+            try resourceManager.createDirectoriesIfNeeded()
+            logManager.info("Resource directories created successfully")
+        } catch {
+            logManager.error("Failed to create resource directories: \(error.localizedDescription)")
         }
     }
 } 

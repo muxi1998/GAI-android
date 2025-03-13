@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  BreezeApp
 //
-//  Created by 陳沐希 on 2025/3/2.
+//  Created for BreezeApp
 //
 
 import SwiftUI
@@ -12,64 +12,117 @@ struct ContentView: View {
     @EnvironmentObject var vlmService: VLMService
     @EnvironmentObject var asrService: ASRService
     @EnvironmentObject var ttsService: TTSService
+    @EnvironmentObject var logManager: LogManager
+    @EnvironmentObject var resourceManager: ResourceManager
+    
     @State private var userInput = ""
     @State private var messages: [Message] = []
+    @State private var showingLogs = false
+    @State private var showingSettings = false
+    @State private var isImagePickerPresented = false
+    @State private var selectedImage: UIImage?
     
     var body: some View {
-        VStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(messages) { message in
-                        MessageView(message: message)
+        NavigationView {
+            VStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(messages) { message in
+                            MessageView(message: message)
+                        }
                     }
+                    .padding()
+                }
+                
+                HStack {
+                    Button(action: {
+                        if asrService.isRecording {
+                            asrService.stopRecording { transcribedText in
+                                userInput = transcribedText
+                            }
+                        } else {
+                            asrService.startRecording()
+                        }
+                    }) {
+                        Image(systemName: asrService.isRecording ? "stop.circle.fill" : "mic.circle")
+                            .font(.system(size: 24))
+                            .foregroundColor(asrService.isRecording ? .red : .blue)
+                    }
+                    .disabled(!asrService.isAuthorized)
+                    
+                    TextField("Type a message...", text: $userInput)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .disabled(asrService.isRecording)
+                    
+                    Button(action: sendMessage) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.blue)
+                    }
+                    .disabled(userInput.isEmpty || llmService.isLoading)
                 }
                 .padding()
             }
-            
-            HStack {
-                Button(action: {
-                    if asrService.isRecording {
-                        asrService.stopRecording { transcribedText in
-                            userInput = transcribedText
-                        }
-                    } else {
-                        asrService.startRecording()
+            .navigationTitle("BreezeApp")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        showingSettings.toggle()
+                    }) {
+                        Image(systemName: "gear")
                     }
-                }) {
-                    Image(systemName: asrService.isRecording ? "stop.circle.fill" : "mic.circle")
-                        .font(.system(size: 24))
-                        .foregroundColor(asrService.isRecording ? .red : .blue)
                 }
                 
-                TextField("Type a message...", text: $userInput)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .disabled(asrService.isRecording)
-                
-                Button(action: sendMessage) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.blue)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingLogs.toggle()
+                    }) {
+                        Image(systemName: "list.bullet.rectangle")
+                    }
                 }
-                .disabled(userInput.isEmpty || llmService.isLoading)
             }
-            .padding()
+            .sheet(isPresented: $showingLogs) {
+                LogView()
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
+            .onAppear {
+                logManager.info("ContentView appeared")
+                // Check if speech recognition is authorized
+                if !asrService.isAuthorized {
+                    logManager.warning("Speech recognition not authorized")
+                }
+            }
         }
-        .navigationTitle("BreezeApp")
     }
     
     private func sendMessage() {
+        guard !userInput.isEmpty else { return }
+        
         let userMessage = Message(content: userInput, isUser: true)
         messages.append(userMessage)
         
         let query = userInput
         userInput = ""
         
-        llmService.generateText(prompt: query) { response in
-            let aiMessage = Message(content: response, isUser: false)
-            messages.append(aiMessage)
-            
-            if !ttsService.isSpeaking {
-                ttsService.speak(text: response)
+        logManager.info("Sending message: \(query)")
+        
+        llmService.generateText(prompt: query) { result in
+            switch result {
+            case .success(let response):
+                let aiMessage = Message(content: response, isUser: false)
+                messages.append(aiMessage)
+                
+                if !ttsService.isSpeaking {
+                    ttsService.speak(text: response)
+                }
+                
+                logManager.info("Received response from LLM")
+            case .failure(let error):
+                let errorMessage = Message(content: "Error: \(error.localizedDescription)", isUser: false)
+                messages.append(errorMessage)
+                logManager.error("LLM error: \(error.localizedDescription)")
             }
         }
     }
@@ -104,6 +157,112 @@ struct MessageView: View {
                 Spacer()
             }
         }
+        .contextMenu {
+            Button(action: {
+                UIPasteboard.general.string = message.content
+            }) {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+        }
+    }
+}
+
+struct SettingsView: View {
+    @EnvironmentObject var resourceManager: ResourceManager
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: Text("Models")) {
+                    NavigationLink(destination: ModelSelectionView(modelType: .llm)) {
+                        HStack {
+                            Text("LLM Model")
+                            Spacer()
+                            Text(resourceManager.isLLMModelValid ? resourceManager.llmModelName : "Not Selected")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    NavigationLink(destination: ModelSelectionView(modelType: .vlm)) {
+                        HStack {
+                            Text("VLM Model")
+                            Spacer()
+                            Text(resourceManager.isVLMModelValid ? resourceManager.vlmModelName : "Not Selected")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                Section(header: Text("Tokenizer")) {
+                    NavigationLink(destination: TokenizerSelectionView()) {
+                        HStack {
+                            Text("Tokenizer")
+                            Spacer()
+                            Text(resourceManager.isTokenizerValid ? resourceManager.tokenizerName : "Not Selected")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct ModelSelectionView: View {
+    enum ModelType {
+        case llm
+        case vlm
+    }
+    
+    @EnvironmentObject var resourceManager: ResourceManager
+    @Environment(\.dismiss) var dismiss
+    let modelType: ModelType
+    
+    var body: some View {
+        List {
+            ForEach(resourceManager.listModels(), id: \.self) { modelURL in
+                Button(action: {
+                    switch modelType {
+                    case .llm:
+                        resourceManager.llmModelPath = modelURL.path
+                    case .vlm:
+                        resourceManager.vlmModelPath = modelURL.path
+                    }
+                    dismiss()
+                }) {
+                    Text(modelURL.lastPathComponent)
+                }
+            }
+        }
+        .navigationTitle(modelType == .llm ? "Select LLM Model" : "Select VLM Model")
+    }
+}
+
+struct TokenizerSelectionView: View {
+    @EnvironmentObject var resourceManager: ResourceManager
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        List {
+            ForEach(resourceManager.listTokenizers(), id: \.self) { tokenizerURL in
+                Button(action: {
+                    resourceManager.tokenizerPath = tokenizerURL.path
+                    dismiss()
+                }) {
+                    Text(tokenizerURL.lastPathComponent)
+                }
+            }
+        }
+        .navigationTitle("Select Tokenizer")
     }
 }
 
@@ -113,4 +272,6 @@ struct MessageView: View {
         .environmentObject(VLMService())
         .environmentObject(ASRService())
         .environmentObject(TTSService())
+        .environmentObject(LogManager())
+        .environmentObject(ResourceManager())
 }
