@@ -69,9 +69,11 @@ class ASRService: NSObject, ObservableObject, SFSpeechRecognizerDelegate {
         
         // Configure audio session for recording
         do {
+            #if os(iOS)
             let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            #endif
         } catch {
             print("Failed to set up audio session: \(error.localizedDescription)")
             return
@@ -90,11 +92,8 @@ class ASRService: NSObject, ObservableObject, SFSpeechRecognizerDelegate {
         // Configure the audio engine and input node
         let inputNode = audioEngine.inputNode
         
-        // Ensure we get a valid recording format with proper sample rate and channel count
-        guard let recordingFormat = inputNode.inputFormat(forBus: 0) else {
-            print("Unable to get recording format")
-            return
-        }
+        // Get the recording format with proper sample rate and channel count
+        let recordingFormat = inputNode.inputFormat(forBus: 0)
         
         // Check if the format is valid
         if recordingFormat.sampleRate == 0 || recordingFormat.channelCount == 0 {
@@ -152,7 +151,9 @@ class ASRService: NSObject, ObservableObject, SFSpeechRecognizerDelegate {
         
         // Deactivate audio session
         do {
+            #if os(iOS)
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            #endif
         } catch {
             print("Failed to deactivate audio session: \(error.localizedDescription)")
         }
