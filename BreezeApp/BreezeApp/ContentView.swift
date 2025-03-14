@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import UIKit
+import Foundation
 
 struct ContentView: View {
     @EnvironmentObject var llmService: LLMService
@@ -59,7 +61,7 @@ struct ContentView: View {
                             .font(.system(size: 24))
                             .foregroundColor(.blue)
                     }
-                    .disabled(userInput.isEmpty || llmService.isLoading)
+                    .disabled(userInput.isEmpty || llmService.isGenerating)
                 }
                 .padding()
             }
